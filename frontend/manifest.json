@@ -2,8 +2,7 @@
   "name": "Smart Ulat Hongkong IoT Dashboard",
   "short_name": "Smart Ulat",
   "description": "Sistem Monitoring & Kontrol Kandang Ulat Hongkong Berbasis IoT dengan Fuzzy-PID dan Self-Monitoring System",
-  "id": "/",
-  "start_url": "/?source=pwa",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
@@ -12,41 +11,53 @@
   "theme_color": "#070b14",
   "lang": "id",
   "dir": "ltr",
-  "categories": ["productivity", "utilities", "business", "education"],
+  "categories": ["productivity", "utilities", "business"],
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/assets/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/assets/icons/android/launchericon-48x48.png",
+      "sizes": "48x48",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/icons/icon-maskable.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
+      "src": "/assets/icons/android/launchericon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/assets/icons/icon-192.png",
+      "src": "/assets/icons/android/launchericon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/android/launchericon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/android/launchericon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/icons/icon-512.png",
+      "src": "/assets/icons/android/launchericon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/icons/icon-192-maskable.png",
+      "src": "/assets/icons/android/launchericon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/assets/icons/icon-512-maskable.png",
+      "src": "/assets/icons/android/launchericon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -57,52 +68,31 @@
       "name": "Dashboard",
       "short_name": "Dashboard",
       "url": "/#/dashboard",
-      "description": "Buka dashboard utama",
-      "icons": [{ "src": "/assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "description": "Buka dashboard utama"
     },
     {
       "name": "Monitoring",
       "short_name": "Monitoring",
       "url": "/#/monitoring",
-      "description": "Buka halaman monitoring realtime",
-      "icons": [{ "src": "/assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "description": "Buka halaman monitoring realtime"
     },
     {
       "name": "Fuzzy-PID",
       "short_name": "Fuzzy-PID",
       "url": "/#/fuzzy-pid",
-      "description": "Buka halaman Fuzzy-PID",
-      "icons": [{ "src": "/assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "description": "Buka halaman Fuzzy-PID"
     },
     {
       "name": "Power",
       "short_name": "Power",
       "url": "/#/power",
-      "description": "Buka halaman power monitoring",
-      "icons": [{ "src": "/assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "description": "Buka halaman power monitoring"
     },
     {
       "name": "Configuration",
       "short_name": "Config",
       "url": "/#/configuration",
-      "description": "Buka halaman konfigurasi",
-      "icons": [{ "src": "/assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/assets/images/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Dashboard Smart Ulat Hongkong"
-    },
-    {
-      "src": "/assets/images/screenshot-mobile.png",
-      "sizes": "720x1280",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Dashboard di mobile"
+      "description": "Buka halaman konfigurasi"
     }
   ]
 }

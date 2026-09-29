@@ -25,7 +25,7 @@
 // ------------------------------------------------------------
 // Versioning — bump saat deploy supaya cache lama dihapus
 // ------------------------------------------------------------
-const CACHE_VERSION = 'v15';
+const CACHE_VERSION = 'v16';
 const CACHE_STATIC  = `smart-ulat-static-${CACHE_VERSION}`;
 const CACHE_PAGES   = `smart-ulat-pages-${CACHE_VERSION}`;
 const CACHE_EXT     = `smart-ulat-ext-${CACHE_VERSION}`;
