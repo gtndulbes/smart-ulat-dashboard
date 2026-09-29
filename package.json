@@ -1,0 +1,38 @@
+{
+  "name": "smart-ulat-dashboard",
+  "version": "1.0.0",
+  "description": "Smart Ulat Hongkong IoT Dashboard — Monitoring & Kontrol Kandang dengan Fuzzy-PID dan Self-Monitoring System",
+  "private": true,
+  "author": "Muhammad Gatan Rifani <23410300617>",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "iot",
+    "esp32",
+    "mqtt",
+    "fuzzy-pid",
+    "dashboard",
+    "smart-farming",
+    "ulat-hongkong",
+    "mealworm",
+    "scada"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "postinstall": "npm --prefix backend install",
+    "dev": "npm --prefix backend run dev",
+    "start": "npm --prefix backend start",
+    "install:backend": "npm --prefix backend install",
+    "clean": "rimraf backend/node_modules backend/package-lock.json node_modules package-lock.json",
+    "health": "node -e \"require('http').get('http://localhost:3000/api/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>console.log(d))})\""
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5"
+  }
+}

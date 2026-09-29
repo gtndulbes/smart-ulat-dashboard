@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#070b14"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wormGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="50%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#67e8f9"/>
+    </linearGradient>
+    <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="96" fill="url(#glow)"/>
+
+  <!-- Outer neon border -->
+  <rect x="16" y="16" width="480" height="480" rx="80"
+        fill="none" stroke="#06b6d4" stroke-width="4" stroke-opacity="0.6"/>
+
+  <!-- Corner accents -->
+  <path d="M 80 48 L 48 48 L 48 80" fill="none" stroke="#22d3ee" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 432 48 L 464 48 L 464 80" fill="none" stroke="#22d3ee" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 48 432 L 48 464 L 80 464" fill="none" stroke="#22d3ee" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 464 432 L 464 464 L 432 464" fill="none" stroke="#22d3ee" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Stylized worm (S-shape) -->
+  <g filter="url(#glowFilter)">
+    <path d="M 130 330
+             Q 130 240 200 240
+             Q 270 240 270 330
+             Q 270 420 340 420
+             Q 400 420 400 360"
+          fill="none"
+          stroke="url(#wormGrad)"
+          stroke-width="44"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+
+    <!-- Segment marks -->
+    <circle cx="170" cy="270" r="4" fill="#070b14" opacity="0.5"/>
+    <circle cx="230" cy="280" r="4" fill="#070b14" opacity="0.5"/>
+    <circle cx="290" cy="350" r="4" fill="#070b14" opacity="0.5"/>
+    <circle cx="345" cy="395" r="4" fill="#070b14" opacity="0.5"/>
+
+    <!-- Head dot (eye) -->
+    <circle cx="400" cy="360" r="10" fill="#070b14"/>
+    <circle cx="400" cy="360" r="4" fill="#67e8f9"/>
+  </g>
+
+  <!-- Text label "SU" -->
+  <text x="256" y="480"
+        text-anchor="middle"
+        font-family="JetBrains Mono, monospace"
+        font-weight="700"
+        font-size="40"
+        letter-spacing="8"
+        fill="#06b6d4"
+        opacity="0.85">SU</text>
+</svg>

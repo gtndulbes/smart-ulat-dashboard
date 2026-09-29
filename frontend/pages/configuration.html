@@ -1,0 +1,197 @@
+<section class="space-y-4 md:space-y-6">
+
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+    <div class="min-w-0">
+      <p class="scada-label">Configuration</p>
+      <h2 class="text-base md:text-lg font-semibold text-slate-100 mt-1">Konfigurasi Sistem</h2>
+      <p class="text-xs text-slate-500 mt-1">Semua perubahan dikirim ke ESP32 &amp; disimpan di NVS.</p>
+    </div>
+    <span id="cfg-dirty-badge" class="scada-badge scada-badge-idle self-start flex-shrink-0">SYNCED</span>
+  </div>
+
+  <div class="scada-card">
+    <p class="scada-label">Environment</p>
+    <h3 class="scada-title-sm">Setpoint Lingkungan</h3>
+
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">Suhu Setpoint (°C)</label>
+        <input id="cfg-sp-temp" type="number" step="0.1" min="20" max="35"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-neon-cyan/60 focus:outline-none" />
+        <p class="text-[10px] text-slate-500 mt-1">Range 26–29 °C optimal</p>
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">Kelembaban Setpoint (%RH)</label>
+        <input id="cfg-sp-hum" type="number" step="0.5" min="40" max="95"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-neon-cyan/60 focus:outline-none" />
+        <p class="text-[10px] text-slate-500 mt-1">Range 60–90 %RH optimal</p>
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">NH₃ Limit (ppm)</label>
+        <input id="cfg-sp-nh3" type="number" step="0.5" min="5" max="50"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-neon-cyan/60 focus:outline-none" />
+        <p class="text-[10px] text-slate-500 mt-1">&lt; 25 ppm aman</p>
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">NH₃ Emergency (ppm)</label>
+        <input id="cfg-nh3-emerg" type="number" step="0.5" min="15" max="100"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-neon-cyan/60 focus:outline-none" />
+      </div>
+    </div>
+  </div>
+
+  <div class="scada-card">
+    <p class="scada-label">PID Controller</p>
+    <h3 class="scada-title-sm">PID Gains</h3>
+
+    <div class="mt-4 space-y-4">
+      <div>
+        <p class="text-xs text-slate-400 mb-2">Peltier</p>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Kp</label>
+            <input id="cfg-peltier-kp" type="number" step="0.1"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Ki</label>
+            <input id="cfg-peltier-ki" type="number" step="0.01"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Kd</label>
+            <input id="cfg-peltier-kd" type="number" step="0.1"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs text-slate-400 mb-2">Fan Temperature</p>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Kp</label>
+            <input id="cfg-fanT-kp" type="number" step="0.1"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Ki</label>
+            <input id="cfg-fanT-ki" type="number" step="0.01"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Kd</label>
+            <input id="cfg-fanT-kd" type="number" step="0.1"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs text-slate-400 mb-2">Fan Humidity</p>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Kp</label>
+            <input id="cfg-fanH-kp" type="number" step="0.1"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Ki</label>
+            <input id="cfg-fanH-ki" type="number" step="0.01"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Kd</label>
+            <input id="cfg-fanH-kd" type="number" step="0.1"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs text-slate-400 mb-2">Fan NH₃</p>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Kp</label>
+            <input id="cfg-fanN-kp" type="number" step="0.1"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Ki</label>
+            <input id="cfg-fanN-ki" type="number" step="0.01"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-slate-500">Kd</label>
+            <input id="cfg-fanN-kd" type="number" step="0.1"
+                   class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scada-card">
+    <p class="scada-label">Heatsink Fan</p>
+    <h3 class="scada-title-sm">PWM Tracking Peltier</h3>
+
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">Min PWM (0–255)</label>
+        <input id="cfg-hs-min" type="number" min="0" max="255"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200" />
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">Max PWM (0–255)</label>
+        <input id="cfg-hs-max" type="number" min="0" max="255"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200" />
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">Curve (0.1–2.0)</label>
+        <input id="cfg-hs-curve" type="number" step="0.1" min="0.1" max="2.0"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200" />
+      </div>
+    </div>
+  </div>
+
+  <div class="scada-card">
+    <p class="scada-label">Power</p>
+    <h3 class="scada-title-sm">Threshold Suplai Daya</h3>
+
+    <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">V Min (V)</label>
+        <input id="cfg-v-min" type="number" step="0.1"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200" />
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">V Max (V)</label>
+        <input id="cfg-v-max" type="number" step="0.1"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200" />
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">I Max (A)</label>
+        <input id="cfg-i-max" type="number" step="0.1"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200" />
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">P Max (W)</label>
+        <input id="cfg-p-max" type="number" step="0.5"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200" />
+      </div>
+    </div>
+  </div>
+
+  <div class="flex flex-col sm:flex-row gap-3 justify-end">
+    <button id="cfg-reload"
+            class="px-4 py-2 rounded-md bg-navy-700 hover:bg-navy-600 border border-slate-700/60 text-sm transition">
+      ↻ Reload dari Server
+    </button>
+    <button id="cfg-save"
+            class="px-6 py-2 rounded-md bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/40 text-cyan-200 text-sm font-medium transition disabled:opacity-40"
+            disabled>
+      💾 Simpan ke ESP32
+    </button>
+  </div>
+
+</section>

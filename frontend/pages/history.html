@@ -1,0 +1,87 @@
+<section class="space-y-4 md:space-y-6">
+
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+    <div class="min-w-0">
+      <p class="scada-label">Historical Data</p>
+      <h2 class="text-base md:text-lg font-semibold text-slate-100 mt-1">Log & Riwayat</h2>
+      <p class="text-xs text-slate-500 mt-1">Data historis dari Google Sheets via backend</p>
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      <button id="hist-export-csv" class="text-xs px-3 py-1.5 rounded-md bg-navy-700 hover:bg-navy-600 border border-slate-700/60 transition">
+        ⬇ CSV
+      </button>
+      <button id="hist-export-xlsx" class="text-xs px-3 py-1.5 rounded-md bg-navy-700 hover:bg-navy-600 border border-slate-700/60 transition">
+        ⬇ Excel
+      </button>
+      <a id="hist-open-sheet" target="_blank" rel="noopener"
+         class="text-xs px-3 py-1.5 rounded-md bg-navy-700 hover:bg-navy-600 border border-slate-700/60 transition">
+        ↗ Sheets
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="scada-card">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">Dari</label>
+        <input id="hist-date-from" type="date"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:border-neon-cyan/60 focus:outline-none" />
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">Sampai</label>
+        <input id="hist-date-to" type="date"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:border-neon-cyan/60 focus:outline-none" />
+      </div>
+      <div>
+        <label class="text-[10px] uppercase tracking-widest text-slate-500">Cari</label>
+        <input id="hist-search" type="text" placeholder="Cari…"
+               class="mt-1 w-full bg-navy-900 border border-slate-700/60 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:border-neon-cyan/60 focus:outline-none" />
+      </div>
+      <div class="flex items-end">
+        <button id="hist-apply-filter" class="w-full text-xs px-3 py-2 rounded-md bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/40 text-cyan-200 transition">
+          Apply Filter
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="scada-card overflow-hidden !p-0">
+    <div class="table-wrapper">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="border-b border-slate-800/60 text-[10px] uppercase tracking-widest text-slate-500">
+            <th class="text-left px-3 py-3 font-semibold">Timestamp</th>
+            <th class="text-right px-3 py-3 font-semibold">T (°C)</th>
+            <th class="text-right px-3 py-3 font-semibold">RH (%)</th>
+            <th class="text-right px-3 py-3 font-semibold">NH₃ (ppm)</th>
+            <th class="text-right px-3 py-3 font-semibold">V (V)</th>
+            <th class="text-right px-3 py-3 font-semibold">I (A)</th>
+            <th class="text-right px-3 py-3 font-semibold">P (W)</th>
+            <th class="text-right px-3 py-3 font-semibold">Peltier</th>
+            <th class="text-right px-3 py-3 font-semibold">Exhaust</th>
+            <th class="text-right px-3 py-3 font-semibold">Status</th>
+          </tr>
+        </thead>
+        <tbody id="hist-tbody" class="text-slate-300">
+          <tr>
+            <td colspan="10" class="px-3 py-12 text-center text-slate-500">
+              Memuat data historis…
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+    <p>Halaman <span id="hist-page" class="font-mono text-slate-300">1</span> dari <span id="hist-total-pages" class="font-mono text-slate-300">—</span></p>
+    <div class="flex gap-2">
+      <button id="hist-prev" class="px-3 py-1.5 rounded bg-navy-700 hover:bg-navy-600 border border-slate-700/60 disabled:opacity-40" disabled>← Prev</button>
+      <button id="hist-next" class="px-3 py-1.5 rounded bg-navy-700 hover:bg-navy-600 border border-slate-700/60 disabled:opacity-40" disabled>Next →</button>
+    </div>
+  </div>
+
+</section>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#070b14" />
+  <title>Offline — Smart Ulat Hongkong</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            navy: { 900:'#070b14', 800:'#0b1220', 700:'#111a2e', 600:'#182339' },
+            neon: { blue:'#3b82f6', cyan:'#06b6d4', green:'#10b981', orange:'#f59e0b', red:'#ef4444' }
+          },
+          fontFamily: {
+            sans: ['Inter','system-ui','sans-serif'],
+            mono: ['JetBrains Mono','ui-monospace','monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    body {
+      background:
+        radial-gradient(900px 600px at 50% -10%, rgba(239,68,68,0.08), transparent 60%),
+        radial-gradient(700px 500px at 100% 100%, rgba(6,182,212,0.05), transparent 60%),
+        #070b14;
+    }
+    @keyframes pulseSoft {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.5; }
+    }
+    .animate-pulse-soft { animation: pulseSoft 2s ease-in-out infinite; }
+  </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-6 text-slate-200 font-sans antialiased">
+
+  <div class="max-w-md w-full text-center">
+
+    <!-- Icon -->
+    <div class="mx-auto mb-6 w-20 h-20 rounded-2xl bg-navy-800 border border-red-500/30 flex items-center justify-center shadow-[0_0_24px_rgba(239,68,68,0.25)]">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414"/>
+      </svg>
+    </div>
+
+    <!-- Title -->
+    <h1 class="text-2xl font-semibold text-slate-100 mb-2">Anda Sedang Offline</h1>
+    <p class="text-sm text-slate-400 leading-relaxed mb-6">
+      Koneksi ke server Smart Ulat Hongkong terputus. Halaman yang Anda buka
+      membutuhkan koneksi ke backend.
+    </p>
+
+    <!-- Info -->
+    <div class="scada-card bg-navy-800/60 border border-slate-800 rounded-lg p-4 mb-6 text-left text-xs text-slate-400 space-y-2">
+      <p class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-pulse-soft"></span>
+        Sistem kontrol lokal di kandang <strong class="text-slate-300">tetap berjalan</strong>.
+      </p>
+      <p class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-pulse-soft"></span>
+        Data akan disinkronkan saat koneksi kembali.
+      </p>
+      <p class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-pulse-soft"></span>
+        Cek kabel jaringan atau WiFi Anda.
+      </p>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <button onclick="location.reload()"
+              class="px-6 py-2.5 rounded-md bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/40 text-cyan-200 text-sm font-medium transition">
+        ↻ Coba Lagi
+      </button>
+      <a href="/"
+         class="px-6 py-2.5 rounded-md bg-navy-700 hover:bg-navy-600 border border-slate-700/60 text-slate-300 text-sm transition">
+        ← Kembali ke Dashboard
+      </a>
+    </div>
+
+    <!-- Footer -->
+    <p class="mt-8 text-[11px] text-slate-600 font-mono">
+      Smart Ulat Hongkong IoT Dashboard · Offline Mode
+    </p>
+  </div>
+
+</body>
+</html>

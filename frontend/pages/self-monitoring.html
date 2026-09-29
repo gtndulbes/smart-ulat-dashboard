@@ -1,0 +1,145 @@
+<section class="space-y-4 md:space-y-6">
+
+  <div>
+    <p class="scada-label">System Health</p>
+    <h2 class="text-base md:text-lg font-semibold text-slate-100 mt-1">Self-Monitoring</h2>
+    <p class="text-xs text-slate-500 mt-1">Deteksi dini kegagalan sensor, aktuator, dan komunikasi</p>
+  </div>
+
+  <!-- SAFE MODE banner -->
+  <div id="sm-safe-banner" class="hidden scada-card border-red-500/30 bg-red-500/5">
+    <div class="flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0"></div>
+      <div class="min-w-0">
+        <p class="text-red-300 font-semibold">SAFE MODE ACTIVE</p>
+        <p class="text-xs text-slate-400 mt-1">Sensor error terdeteksi. Peltier OFF, Exhaust Fan = 255.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="scada-card">
+    <p class="scada-label">Communication</p>
+    <h3 class="scada-title-sm">Konektivitas</h3>
+
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <span id="sm-wifi-dot" class="w-3 h-3 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-300 text-sm">WiFi</p>
+          <p id="sm-wifi-text" class="text-[11px] text-slate-500 font-mono truncate">—</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <span id="sm-mqtt-dot" class="w-3 h-3 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-300 text-sm">MQTT</p>
+          <p id="sm-mqtt-text" class="text-[11px] text-slate-500 font-mono truncate">—</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <span id="sm-ws-dot" class="w-3 h-3 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-300 text-sm">WebSocket</p>
+          <p id="sm-ws-text" class="text-[11px] text-slate-500 font-mono truncate">—</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <span id="sm-backend-dot" class="w-3 h-3 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-300 text-sm">Backend</p>
+          <p id="sm-backend-text" class="text-[11px] text-slate-500 font-mono truncate">—</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scada-card">
+    <p class="scada-label">Sensors</p>
+    <h3 class="scada-title-sm">Status Sensor</h3>
+
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <span id="sm-sht31-dot" class="w-3 h-3 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-300 text-sm">SHT31-D</p>
+          <p id="sm-sht31-text" class="text-[11px] text-slate-500 font-mono truncate">—</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <span id="sm-mq135-dot" class="w-3 h-3 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-300 text-sm">MQ-135</p>
+          <p id="sm-mq135-text" class="text-[11px] text-slate-500 font-mono truncate">—</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <span id="sm-ina219-dot" class="w-3 h-3 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-300 text-sm">INA219</p>
+          <p id="sm-ina219-text" class="text-[11px] text-slate-500 font-mono truncate">—</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scada-card">
+    <p class="scada-label">Actuators</p>
+    <h3 class="scada-title-sm">Status Aktuator</h3>
+
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <span id="sm-peltier-dot" class="w-3 h-3 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-300 text-sm">Peltier</p>
+          <p id="sm-peltier-text" class="text-[11px] text-slate-500 font-mono truncate">—</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <span id="sm-exhaust-dot" class="w-3 h-3 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-300 text-sm">Exhaust Fan</p>
+          <p id="sm-exhaust-text" class="text-[11px] text-slate-500 font-mono truncate">—</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <span id="sm-heatsink-dot" class="w-3 h-3 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-300 text-sm">Heatsink Fan</p>
+          <p id="sm-heatsink-text" class="text-[11px] text-slate-500 font-mono truncate">—</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scada-card">
+    <p class="scada-label">System</p>
+    <h3 class="scada-title-sm">Info Sistem</h3>
+
+    <div class="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 text-sm">
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Uptime</p>
+        <p id="sm-uptime" class="font-mono text-slate-200 mt-1">—</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Free Heap</p>
+        <p id="sm-heap" class="font-mono text-slate-200 mt-1">—</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Last Update</p>
+        <p id="sm-last-update" class="font-mono text-slate-200 mt-1">—</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Safe Mode</p>
+        <p id="sm-safe-text" class="font-mono text-slate-200 mt-1">—</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Humidity Lock</p>
+        <p id="sm-humlock-text" class="font-mono text-slate-200 mt-1">—</p>
+      </div>
+    </div>
+  </div>
+
+</section>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
+  <meta name="theme-color" content="#070b14" />
+  <meta name="description" content="Smart Ulat Hongkong IoT Dashboard" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Smart Ulat" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="color-scheme" content="dark" />
+  <title>Smart Ulat Hongkong</title>
+
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/assets/icons/favicon.png" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/icons/favicon.png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            navy: { 900:'#070b14', 800:'#0b1220', 700:'#111a2e', 600:'#182339' },
+            neon: { blue:'#3b82f6', cyan:'#06b6d4', green:'#10b981', orange:'#f59e0b', red:'#ef4444' }
+          },
+          fontFamily: {
+            sans: ['Inter','system-ui','sans-serif'],
+            mono: ['JetBrains Mono','ui-monospace','monospace']
+          },
+          boxShadow: {
+            glow: '0 0 12px rgba(6,182,212,0.35)',
+            'glow-green': '0 0 12px rgba(16,185,129,0.35)',
+            'glow-red': '0 0 12px rgba(239,68,68,0.35)'
+          }
+        }
+      }
+    };
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/css/style.css" />
+
+  <style>
+    .range-btn.active {
+      background: rgba(6,182,212,0.2);
+      border-color: rgba(6,182,212,0.5);
+      color: #67e8f9;
+    }
+  </style>
+</head>
+
+<body class="bg-navy-900 text-slate-200 font-sans antialiased min-h-screen">
+
+  <div class="flex min-h-screen">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="hidden md:flex md:flex-col md:sticky md:top-0 md:h-screen md:overflow-y-auto w-60 bg-navy-800 border-r border-slate-800/60">
+      <div class="px-4 md:px-5 py-4 md:py-5 border-b border-slate-800/60 flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <img src="/assets/icons/favicon.png" alt="Logo" class="w-6 h-6 flex-shrink-0" />
+            <span class="text-sm font-semibold tracking-wider text-slate-100 truncate">SMART ULAT</span>
+          </div>
+          <p class="mt-1 text-[10px] uppercase tracking-widest text-slate-500">IoT Control System</p>
+        </div>
+        <button id="sidebarCloseBtn"
+                class="md:hidden p-2 rounded-md hover:bg-navy-700 transition text-slate-400 flex-shrink-0"
+                aria-label="Tutup menu">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="flex-1 px-3 py-4 space-y-1 text-sm overflow-y-auto">
+        <a href="#/dashboard"       data-route="dashboard"       class="nav-item active">
+          <span class="nav-dot"></span> Dashboard
+        </a>
+        <a href="#/monitoring"      data-route="monitoring"      class="nav-item">
+          <span class="nav-dot"></span> Monitoring
+        </a>
+        <a href="#/fuzzy-pid"       data-route="fuzzy-pid"       class="nav-item">
+          <span class="nav-dot"></span> Fuzzy-PID
+        </a>
+        <a href="#/power"           data-route="power"           class="nav-item">
+          <span class="nav-dot"></span> Power
+        </a>
+        <a href="#/self-monitoring" data-route="self-monitoring" class="nav-item">
+          <span class="nav-dot"></span> Self-Monitoring
+        </a>
+        <a href="#/history"         data-route="history"         class="nav-item">
+          <span class="nav-dot"></span> History
+        </a>
+        <a href="#/configuration"   data-route="configuration"   class="nav-item">
+          <span class="nav-dot"></span> Configuration
+        </a>
+      </nav>
+
+      <div class="px-4 md:px-5 py-3 md:py-4 border-t border-slate-800/60">
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Version</p>
+        <p class="text-xs font-mono text-slate-400 mt-1">v1.0.0</p>
+      </div>
+    </aside>
+
+    <!-- OVERLAY untuk mobile drawer -->
+    <div id="drawerOverlay"></div>
+
+    <div class="flex-1 flex flex-col min-w-0">
+
+      <!-- NAVBAR -->
+      <header class="sticky top-0 z-30 flex items-center justify-between gap-2 md:gap-4 px-3 md:px-6 h-14 bg-navy-800/80 backdrop-blur border-b border-slate-800/60">
+        <div class="flex items-center gap-2 md:gap-3 min-w-0">
+          <button id="menuBtn"
+                  class="md:hidden p-2 rounded-md hover:bg-navy-700 transition flex-shrink-0"
+                  aria-label="Buka menu">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <div class="min-w-0">
+            <h1 id="pageTitle" class="text-sm md:text-base font-semibold text-slate-100 truncate">Dashboard</h1>
+            <p class="hidden lg:block text-[11px] text-slate-500 truncate">Kandang Ulat Hongkong · Fuzzy-PID · Self-Monitoring</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 md:gap-3 flex-shrink-0">
+
+          <!-- Install button -->
+          <button id="installBtn"
+                  class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-neon-cyan/15 hover:bg-neon-cyan/25 border border-neon-cyan/40 text-cyan-200 text-[11px] font-medium transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            <span class="hidden lg:inline">Install</span>
+          </button>
+
+          <!-- Bell -->
+          <button id="bellBtn" class="relative p-2 rounded-md hover:bg-navy-700 transition" aria-label="Notifikasi">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            <span id="bellBadge"
+                  class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-neon-red text-white text-[10px] font-bold flex items-center justify-center">
+              0
+            </span>
+          </button>
+
+          <!-- WS indicator -->
+          <div class="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-navy-700 border border-slate-700/60">
+            <span id="wsDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+            <span id="wsLabel" class="text-[11px] font-mono tracking-wide text-slate-400">WS…</span>
+          </div>
+
+          <!-- Server indicator -->
+          <div class="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-navy-700 border border-slate-700/60">
+            <span id="serverDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+            <span id="serverLabel" class="text-[11px] font-mono tracking-wide text-slate-400">SERVER…</span>
+          </div>
+
+          <!-- Clock -->
+          <div class="hidden lg:flex flex-col items-end">
+            <span id="clockTime" class="font-mono text-sm text-slate-100 tracking-wider">--:--:--</span>
+            <span id="clockDate" class="text-[10px] text-slate-500 tracking-widest uppercase">--</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <main id="pageContent" class="flex-1 p-4 md:p-6 space-y-6"></main>
+
+      <!-- FOOTER -->
+      <footer class="border-t border-slate-800/60 px-4 md:px-6 py-3 text-center">
+        <p class="text-[11px] text-slate-600">
+          Smart Ulat Hongkong IoT Dashboard · v1.0.0
+        </p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toastContainer"
+       class="fixed top-16 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] space-y-2 pointer-events-none"></div>
+
+  <!-- Notification dropdown -->
+  <div id="notifDropdown"
+       class="hidden fixed top-14 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] scada-card !p-0 shadow-2xl overflow-hidden">
+    <div class="px-3 py-2.5 flex items-center justify-between border-b border-slate-800/60 bg-navy-800/60">
+      <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Notifications</p>
+      <div class="flex items-center gap-2">
+        <button id="notifMarkAll" class="text-[10px] text-cyan-300 hover:text-cyan-200 uppercase tracking-wider">Mark all</button>
+        <span class="text-slate-700">·</span>
+        <button id="notifClearAll" class="text-[10px] text-red-300 hover:text-red-200 uppercase tracking-wider">Clear</button>
+      </div>
+    </div>
+    <div id="notifList" class="max-h-[60vh] overflow-y-auto"></div>
+  </div>
+
+  <!-- PWA update banner -->
+  <div id="pwaUpdateBanner"
+       class="hidden fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50 scada-card border-cyan-500/40 bg-navy-800/95 backdrop-blur shadow-2xl">
+    <div class="flex items-start gap-3">
+      <div class="text-lg">🔄</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-slate-100">Update Tersedia</p>
+        <p class="text-xs text-slate-400 mt-0.5">Versi baru sudah siap.</p>
+        <div class="flex gap-2 mt-3">
+          <button id="pwaUpdateBtn"
+                  class="text-[11px] px-3 py-1.5 rounded-md bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/40 text-cyan-200">
+            Update Sekarang
+          </button>
+          <button id="pwaUpdateDismiss"
+                  class="text-[11px] px-3 py-1.5 rounded-md bg-navy-700 hover:bg-navy-600 border border-slate-700/60 text-slate-400">
+            Nanti
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script src="/js/charts.js"></script>
+  <script src="/js/websocket.js"></script>
+  <script src="/js/mqtt-state.js"></script>
+  <script src="/js/router.js"></script>
+  <script src="/js/alerts.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script src="/js/monitoring.js"></script>
+  <script src="/js/fuzzy-pid.js"></script>
+  <script src="/js/power.js"></script>
+  <script src="/js/self-monitoring.js"></script>
+  <script src="/js/configuration.js"></script>
+  <script src="/js/history.js"></script>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/app.js"></script>
+
+  <script>
+    if (typeof PWA !== 'undefined') {
+      window.addEventListener('load', () => PWA.init());
+    }
+  </script>
+</body>
+</html>

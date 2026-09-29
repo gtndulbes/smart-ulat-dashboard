@@ -1,0 +1,278 @@
+<!-- ============================================
+     pages/dashboard.html — Fragment
+     ============================================ -->
+
+<section class="space-y-4 md:space-y-6">
+
+  <!-- Header row -->
+  <div class="flex items-center justify-between gap-3">
+    <div class="min-w-0">
+      <p class="scada-label">Overview</p>
+      <h2 class="text-base md:text-lg font-semibold text-slate-100 mt-1 truncate">Ringkasan Sistem</h2>
+    </div>
+    <span id="dash-status" class="scada-badge scada-badge-idle flex-shrink-0">WAITING</span>
+  </div>
+
+  <!-- Environment cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+
+    <div class="scada-card">
+      <div class="flex items-start justify-between gap-2">
+        <div class="min-w-0">
+          <p class="scada-label">Suhu</p>
+          <h3 class="scada-title-sm">Kandang</h3>
+        </div>
+        <span id="dash-temp-status" class="scada-badge scada-badge-idle flex-shrink-0">—</span>
+      </div>
+      <div class="mt-3 md:mt-4 flex items-baseline gap-2">
+        <span id="dash-temp" class="font-mono text-2xl md:text-3xl font-semibold text-slate-100">--.-</span>
+        <span class="text-slate-500 text-sm">°C</span>
+      </div>
+      <p class="text-[11px] text-slate-500 mt-2">
+        Setpoint: <span id="dash-temp-sp" class="font-mono text-slate-400">—</span> °C
+      </p>
+    </div>
+
+    <div class="scada-card">
+      <div class="flex items-start justify-between gap-2">
+        <div class="min-w-0">
+          <p class="scada-label">Kelembaban</p>
+          <h3 class="scada-title-sm">Relative</h3>
+        </div>
+        <span id="dash-hum-status" class="scada-badge scada-badge-idle flex-shrink-0">—</span>
+      </div>
+      <div class="mt-3 md:mt-4 flex items-baseline gap-2">
+        <span id="dash-hum" class="font-mono text-2xl md:text-3xl font-semibold text-slate-100">--.-</span>
+        <span class="text-slate-500 text-sm">%RH</span>
+      </div>
+      <p class="text-[11px] text-slate-500 mt-2">
+        Setpoint: <span id="dash-hum-sp" class="font-mono text-slate-400">—</span> %RH
+      </p>
+    </div>
+
+    <div class="scada-card sm:col-span-2 lg:col-span-1">
+      <div class="flex items-start justify-between gap-2">
+        <div class="min-w-0">
+          <p class="scada-label">Kualitas Udara</p>
+          <h3 class="scada-title-sm">NH₃</h3>
+        </div>
+        <span id="dash-nh3-status" class="scada-badge scada-badge-idle flex-shrink-0">—</span>
+      </div>
+      <div class="mt-3 md:mt-4 flex items-baseline gap-2">
+        <span id="dash-nh3" class="font-mono text-2xl md:text-3xl font-semibold text-slate-100">--.-</span>
+        <span class="text-slate-500 text-sm">ppm</span>
+      </div>
+      <p class="text-[11px] text-slate-500 mt-2">
+        Limit: <span id="dash-nh3-limit" class="font-mono text-slate-400">—</span> ppm
+      </p>
+    </div>
+  </div>
+
+  <!-- Actuator + Power -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+    <div class="scada-card">
+      <p class="scada-label">Actuator</p>
+      <h3 class="scada-title">Status Aktuator</h3>
+      <div class="mt-4 space-y-3 md:space-y-4 text-sm">
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-slate-300">Peltier</p>
+            <p class="text-[11px] text-slate-500 font-mono">TEC1-12706</p>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <p id="dash-peltier-status" class="scada-badge scada-badge-idle">OFF</p>
+            <p id="dash-peltier-pwm" class="text-[11px] font-mono text-slate-500 mt-1">PWM: —</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-slate-300">Exhaust Fan</p>
+            <p class="text-[11px] text-slate-500 font-mono">Ventilasi udara</p>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <p id="dash-exhaust-pwm" class="font-mono text-slate-200">—</p>
+            <p class="text-[11px] text-slate-500">PWM 0–255</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-slate-300">Heatsink Fan</p>
+            <p class="text-[11px] text-slate-500 font-mono">Peltier cooling</p>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <p id="dash-heatsink-pwm" class="font-mono text-slate-200">—</p>
+            <p class="text-[11px] text-slate-500">PWM 0–255</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scada-card">
+      <p class="scada-label">Power</p>
+      <h3 class="scada-title">Konsumsi Daya</h3>
+      <div class="mt-4 grid grid-cols-3 gap-2 md:gap-3 text-sm">
+        <div>
+          <p class="text-[10px] uppercase tracking-widest text-slate-500">Voltage</p>
+          <p id="dash-v" class="font-mono text-base md:text-lg text-slate-200 mt-1">--.--</p>
+          <p class="text-[10px] text-slate-500">V</p>
+        </div>
+        <div>
+          <p class="text-[10px] uppercase tracking-widest text-slate-500">Current</p>
+          <p id="dash-i" class="font-mono text-base md:text-lg text-slate-200 mt-1">--.--</p>
+          <p class="text-[10px] text-slate-500">A</p>
+        </div>
+        <div>
+          <p class="text-[10px] uppercase tracking-widest text-slate-500">Power</p>
+          <p id="dash-p" class="font-mono text-base md:text-lg text-slate-200 mt-1">--.--</p>
+          <p class="text-[10px] text-slate-500">W</p>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t border-slate-800/60 flex items-center justify-between gap-2">
+        <p class="text-[11px] text-slate-500">Status</p>
+        <span id="dash-power-status" class="scada-badge scada-badge-idle">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- System status -->
+  <div class="scada-card">
+    <p class="scada-label">System</p>
+    <h3 class="scada-title">Status Sistem</h3>
+    <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
+      <div class="flex items-center gap-2 min-w-0">
+        <span id="dash-sys-ws" class="w-2 h-2 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <span class="text-slate-400 text-xs truncate">WS</span>
+        <span id="dash-sys-ws-text" class="ml-auto font-mono text-xs text-slate-300 truncate">—</span>
+      </div>
+      <div class="flex items-center gap-2 min-w-0">
+        <span id="dash-sys-mqtt" class="w-2 h-2 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <span class="text-slate-400 text-xs truncate">MQTT</span>
+        <span id="dash-sys-mqtt-text" class="ml-auto font-mono text-xs text-slate-300 truncate">—</span>
+      </div>
+      <div class="flex items-center gap-2 min-w-0">
+        <span id="dash-sys-sensor" class="w-2 h-2 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <span class="text-slate-400 text-xs truncate">Sensor</span>
+        <span id="dash-sys-sensor-text" class="ml-auto font-mono text-xs text-slate-300 truncate">—</span>
+      </div>
+      <div class="flex items-center gap-2 min-w-0">
+        <span id="dash-sys-safe" class="w-2 h-2 rounded-full bg-slate-500 flex-shrink-0"></span>
+        <span class="text-slate-400 text-xs truncate">SAFE</span>
+        <span id="dash-sys-safe-text" class="ml-auto font-mono text-xs text-slate-300 truncate">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANUAL CONTROL -->
+  <div class="scada-card border-amber-500/20">
+
+    <!-- Header -->
+    <div class="flex items-start justify-between gap-3 mb-4">
+      <div class="min-w-0">
+        <p class="scada-label text-amber-400">Manual Override</p>
+        <h3 class="scada-title">Manual Control</h3>
+      </div>
+      <span id="mc-feedback" class="scada-badge scada-badge-idle flex-shrink-0">READY</span>
+    </div>
+
+    <!-- Mode + Actions -->
+    <div class="mb-5 pb-5 border-b border-slate-800/60">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+
+        <!-- Control Mode -->
+        <div>
+          <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-2">Control Mode</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="mc-mode-auto"
+                    class="min-h-[44px] px-4 rounded-md bg-navy-700 hover:bg-navy-600 active:bg-navy-500 border border-slate-700/60 transition text-xs font-semibold tracking-wide text-slate-300">
+              AUTO
+            </button>
+            <button id="mc-mode-manual"
+                    class="min-h-[44px] px-4 rounded-md bg-navy-700 hover:bg-navy-600 active:bg-navy-500 border border-slate-700/60 transition text-xs font-semibold tracking-wide text-slate-300">
+              MANUAL
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div>
+          <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-2">Quick Actions</p>
+          <div class="grid grid-cols-3 gap-2">
+            <button id="mc-save-config"
+                    class="min-h-[44px] px-3 rounded-md bg-navy-700 hover:bg-navy-600 active:bg-navy-500 border border-slate-700/60 transition text-[11px] font-medium text-slate-300">
+              💾 Save
+            </button>
+            <button id="mc-clear-safe"
+                    class="min-h-[44px] px-3 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 active:bg-emerald-500/40 border border-emerald-500/40 transition text-[11px] font-semibold text-emerald-200">
+              ✓ Clear Safe
+            </button>
+            <button id="mc-emergency"
+                    class="min-h-[44px] px-3 rounded-md bg-red-500/20 hover:bg-red-500/30 active:bg-red-500/40 border border-red-500/40 transition text-[11px] font-semibold text-red-200">
+              🛑 STOP
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Sliders -->
+    <div class="space-y-4">
+
+      <!-- Peltier -->
+      <div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+          <div>
+            <p class="text-slate-300 text-sm font-medium">Peltier</p>
+            <p class="text-[11px] text-slate-500 font-mono">TEC1-12706</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button id="mc-pel-off"  class="text-[11px] px-2.5 py-1.5 rounded bg-navy-700 border border-slate-700/60 hover:bg-navy-600 active:bg-navy-500 transition">OFF</button>
+            <button id="mc-pel-cool" class="text-[11px] px-2.5 py-1.5 rounded bg-navy-700 border border-slate-700/60 hover:bg-navy-600 active:bg-navy-500 transition">COOL</button>
+            <button id="mc-pel-heat" class="text-[11px] px-2.5 py-1.5 rounded bg-navy-700 border border-slate-700/60 hover:bg-navy-600 active:bg-navy-500 transition">HEAT</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <input id="mc-pel-pwm" type="range" min="0" max="255" value="0" class="flex-1 accent-cyan-500 min-w-0" />
+          <span id="mc-pel-pwm-val" class="font-mono text-sm text-slate-200 w-10 text-right flex-shrink-0">0</span>
+          <button id="mc-pel-apply" class="text-[11px] px-3 py-2 rounded bg-neon-cyan/20 hover:bg-neon-cyan/30 active:bg-neon-cyan/40 border border-neon-cyan/40 text-cyan-200 flex-shrink-0 transition">Apply</button>
+        </div>
+      </div>
+
+      <!-- Exhaust -->
+      <div>
+        <div class="mb-2">
+          <p class="text-slate-300 text-sm font-medium">Exhaust Fan</p>
+          <p class="text-[11px] text-slate-500 font-mono">Ventilasi udara</p>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <input id="mc-exh-pwm" type="range" min="0" max="255" value="0" class="flex-1 accent-cyan-500 min-w-0" />
+          <span id="mc-exh-pwm-val" class="font-mono text-sm text-slate-200 w-10 text-right flex-shrink-0">0</span>
+          <button id="mc-exh-apply" class="text-[11px] px-3 py-2 rounded bg-neon-cyan/20 hover:bg-neon-cyan/30 active:bg-neon-cyan/40 border border-neon-cyan/40 text-cyan-200 flex-shrink-0 transition">Apply</button>
+        </div>
+      </div>
+
+      <!-- Heatsink -->
+      <div>
+        <div class="mb-2">
+          <p class="text-slate-300 text-sm font-medium">Heatsink Fan</p>
+          <p class="text-[11px] text-slate-500 font-mono">Peltier thermal</p>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <input id="mc-hs-pwm" type="range" min="0" max="255" value="0" class="flex-1 accent-cyan-500 min-w-0" />
+          <span id="mc-hs-pwm-val" class="font-mono text-sm text-slate-200 w-10 text-right flex-shrink-0">0</span>
+          <button id="mc-hs-apply" class="text-[11px] px-3 py-2 rounded bg-neon-cyan/20 hover:bg-neon-cyan/30 active:bg-neon-cyan/40 border border-neon-cyan/40 text-cyan-200 flex-shrink-0 transition">Apply</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Last Command -->
+    <div class="mt-5 pt-4 border-t border-slate-800/60">
+      <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Last Command</p>
+      <p id="mc-last-command" class="font-mono text-xs text-slate-400 break-all">
+        Belum ada command.
+      </p>
+    </div>
+
+  </div>
+
+</section>

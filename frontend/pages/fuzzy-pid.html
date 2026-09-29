@@ -1,0 +1,141 @@
+<section class="space-y-4 md:space-y-6">
+
+  <div>
+    <p class="scada-label">Adaptive Control</p>
+    <h2 class="text-base md:text-lg font-semibold text-slate-100 mt-1">Fuzzy-PID Monitoring</h2>
+    <p class="text-xs text-slate-500 mt-1">Mamdani inference · Centroid defuzzification · Adaptive tuning</p>
+  </div>
+
+  <!-- Temperature Control -->
+  <div class="scada-card">
+    <div class="flex items-center justify-between gap-2 mb-4">
+      <div class="min-w-0">
+        <p class="scada-label">Loop 1</p>
+        <h3 class="scada-title-sm truncate">Peltier — Temperature Control</h3>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <!-- Humidity Interlock Badge (hidden by default) -->
+        <span id="fp-temp-humlock"
+              class="hidden scada-badge scada-badge-warn"
+              title="Humidity interlock membatasi cooling karena RH tinggi">
+          💧 HUM LOCK
+        </span>
+        <span id="fp-temp-mode" class="scada-badge scada-badge-idle">IDLE</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Actual</p>
+        <p id="fp-temp-actual" class="font-mono text-base md:text-lg text-slate-200 mt-1">--.-</p>
+        <p class="text-[10px] text-slate-500">°C</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Setpoint</p>
+        <p id="fp-temp-sp" class="font-mono text-base md:text-lg text-slate-200 mt-1">--.-</p>
+        <p class="text-[10px] text-slate-500">°C</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Error</p>
+        <p id="fp-temp-error" class="font-mono text-base md:text-lg text-slate-200 mt-1">--.--</p>
+        <p class="text-[10px] text-slate-500">°C</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Δ Error</p>
+        <p id="fp-temp-de" class="font-mono text-base md:text-lg text-slate-200 mt-1">--.--</p>
+        <p class="text-[10px] text-slate-500">°C/s</p>
+      </div>
+    </div>
+
+    <div class="mt-4 pt-4 border-t border-slate-800/60 grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4 text-sm">
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Kp</p>
+        <p id="fp-temp-kp" class="font-mono text-slate-300 mt-1">—</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Ki</p>
+        <p id="fp-temp-ki" class="font-mono text-slate-300 mt-1">—</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Kd</p>
+        <p id="fp-temp-kd" class="font-mono text-slate-300 mt-1">—</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">ΔKp</p>
+        <p id="fp-temp-dkp" class="font-mono text-emerald-300 mt-1">—</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">ΔKi</p>
+        <p id="fp-temp-dki" class="font-mono text-emerald-300 mt-1">—</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">ΔKd</p>
+        <p id="fp-temp-dkd" class="font-mono text-emerald-300 mt-1">—</p>
+      </div>
+    </div>
+
+    <div class="mt-4 pt-4 border-t border-slate-800/60 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <p class="text-[11px] text-slate-500">PID Output</p>
+        <p id="fp-temp-pid-out" class="font-mono text-slate-300">—</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <p class="text-[11px] text-slate-500">PWM</p>
+        <p id="fp-temp-pwm" class="font-mono text-slate-100 text-lg">—</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Exhaust Fan Controls -->
+  <div class="scada-card">
+    <p class="scada-label">Loop 2–4</p>
+    <h3 class="scada-title-sm">Exhaust Fan — MAX Operator</h3>
+    <p class="text-xs text-slate-500 mt-1">
+      Fan<sub>Final</sub> = MAX(Fan<sub>Temp</sub>, Fan<sub>Humidity</sub>, Fan<sub>NH₃</sub>)
+    </p>
+
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 text-sm">
+      <div class="p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Fan Temperature</p>
+        <p id="fp-fan-temp-out" class="font-mono text-base md:text-lg text-slate-200 mt-2">--.-</p>
+        <p class="text-[10px] text-slate-500">%</p>
+        <div class="mt-2 text-[10px] text-slate-500 space-y-0.5">
+          <p>e: <span id="fp-fan-temp-e" class="font-mono text-slate-400">—</span></p>
+          <p>Δe: <span id="fp-fan-temp-de" class="font-mono text-slate-400">—</span></p>
+        </div>
+      </div>
+
+      <div class="p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Fan Humidity</p>
+        <p id="fp-fan-hum-out" class="font-mono text-base md:text-lg text-slate-200 mt-2">--.-</p>
+        <p class="text-[10px] text-slate-500">%</p>
+        <div class="mt-2 text-[10px] text-slate-500 space-y-0.5">
+          <p>e: <span id="fp-fan-hum-e" class="font-mono text-slate-400">—</span></p>
+          <p>Δe: <span id="fp-fan-hum-de" class="font-mono text-slate-400">—</span></p>
+        </div>
+      </div>
+
+      <div class="p-3 rounded-lg bg-navy-700/40 border border-slate-800/60">
+        <p class="text-[10px] uppercase tracking-widest text-slate-500">Fan NH₃</p>
+        <p id="fp-fan-nh3-out" class="font-mono text-base md:text-lg text-slate-200 mt-2">--.-</p>
+        <p class="text-[10px] text-slate-500">%</p>
+        <div class="mt-2 text-[10px] text-slate-500 space-y-0.5">
+          <p>e: <span id="fp-fan-nh3-e" class="font-mono text-slate-400">—</span></p>
+          <p>Δe: <span id="fp-fan-nh3-de" class="font-mono text-slate-400">—</span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4 pt-4 border-t border-slate-800/60 flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <p class="text-[11px] text-slate-500">MAX Output</p>
+        <p class="text-[10px] text-slate-500 mt-0.5">Fan final = MAX dari 3 loop</p>
+      </div>
+      <div class="text-right flex-shrink-0">
+        <p id="fp-fan-final-pct" class="font-mono text-slate-300">— %</p>
+        <p id="fp-fan-final-pwm" class="font-mono text-xl md:text-2xl text-slate-100">—</p>
+      </div>
+    </div>
+  </div>
+
+</section>

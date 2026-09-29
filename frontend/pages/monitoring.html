@@ -1,0 +1,65 @@
+<!-- ============================================
+     pages/monitoring.html — Fragment
+     ============================================ -->
+
+<section class="space-y-4 md:space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+    <div class="min-w-0">
+      <p class="scada-label">Realtime Monitoring</p>
+      <h2 class="text-base md:text-lg font-semibold text-slate-100 mt-1">Grafik & Telemetri</h2>
+      <p class="text-xs text-slate-500 mt-1">Data diperbarui setiap 1 detik.</p>
+    </div>
+  </div>
+
+  <!-- Environment Chart -->
+  <div class="scada-card">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+      <div class="min-w-0">
+        <p class="scada-label">Environment</p>
+        <h3 class="scada-title-sm truncate">Suhu · Kelembaban · NH₃</h3>
+      </div>
+
+      <!-- Time Range Selector -->
+      <div class="range-selector grid grid-cols-4 gap-1 sm:inline-flex sm:gap-1 sm:w-auto">
+        <button data-range="60"   class="range-btn">1m</button>
+        <button data-range="300"  class="range-btn active">5m</button>
+        <button data-range="900"  class="range-btn">15m</button>
+        <button data-range="3600" class="range-btn">1h</button>
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="chart-environment"></canvas>
+    </div>
+  </div>
+
+  <!-- Actuator Chart -->
+  <div class="scada-card">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+      <div class="min-w-0">
+        <p class="scada-label">Actuator</p>
+        <h3 class="scada-title-sm truncate">PWM Peltier · Exhaust · Heatsink</h3>
+      </div>
+      <span class="scada-badge scada-badge-idle self-start flex-shrink-0">0–255</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="chart-actuator"></canvas>
+    </div>
+  </div>
+
+  <!-- Power Chart -->
+  <div class="scada-card">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+      <div class="min-w-0">
+        <p class="scada-label">Power</p>
+        <h3 class="scada-title-sm truncate">Voltage · Current · Power</h3>
+      </div>
+      <span class="scada-badge scada-badge-idle self-start flex-shrink-0">INA219</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="chart-power"></canvas>
+    </div>
+  </div>
+
+</section>
