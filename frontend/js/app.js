@@ -2,7 +2,7 @@
 
 (() => {
   const HEALTH_ENDPOINT = '/api/health';
-  const HEALTH_INTERVAL_MS = 10000;
+  const HEALTH_INTERVAL_MS = 60000;
 
   const el = {
     clockTime:    Utils.$('clockTime'),

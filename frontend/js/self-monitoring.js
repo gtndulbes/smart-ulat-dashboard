@@ -223,7 +223,7 @@ const SelfMonitoring = (() => {
 
     // Backend health poll
     pollBackendHealth();
-    healthInterval = setInterval(pollBackendHealth, 10000);
+    // healthInterval = setInterval(pollBackendHealth, 10000);
   }
 
   function unmount() {

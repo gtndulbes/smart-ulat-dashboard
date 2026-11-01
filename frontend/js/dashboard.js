@@ -335,7 +335,7 @@ const Dashboard = (() => {
     _on('close', () => renderSystemStatusFromHealth(null));
 
     _pollHealth();
-    healthInterval = setInterval(_pollHealth, 10000);
+    // healthInterval = setInterval(_pollHealth, 10000);
 
     // Manual control binding
     setupManualControl();
