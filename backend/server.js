@@ -2,8 +2,12 @@
  * ============================================================
  * server.js — Entry point
  * ------------------------------------------------------------
- * STEP 16: (frontend only)
- * STEP 17: + Security middleware + error handler
+ * Fix untuk request berlebihan:
+ *   - SPA fallback hanya untuk non-file
+ *   - /api/health di-rate-limit (60/menit)
+ *   - Request audit log
+ *   - Static cache lebih agresif
+ *   - Logger hanya untuk API + error + slow
  * ============================================================
  */
 
@@ -50,21 +54,35 @@ if (configErrors.length > 0) {
   process.exit(1);
 }
 
-// Setup process-level handlers
 setupProcessHandlers();
+
+// ============================================================
+// REQUEST AUDIT — diagnosa "banyak GET"
+// ============================================================
+const _reqStats = new Map();
+
+setInterval(() => {
+  if (_reqStats.size === 0) return;
+  const sorted = [..._reqStats.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  log.warn('📊 Top request paths (last 60s):');
+  for (const [pathKey, count] of sorted) {
+    log.warn(`   ${String(count).padStart(5)}x  ${pathKey}`);
+  }
+  _reqStats.clear();
+}, 60000).unref();
 
 // ------------------------------------------------------------
 const app = express();
 app.set('trust proxy', config.security.trustProxy ? 1 : false);
 app.disable('x-powered-by');
 
-// === SECURITY MIDDLEWARE (urutan penting!) ===
+// === SECURITY MIDDLEWARE ===
 app.use(security.securityHeaders);
 app.use(security.requestId);
 app.use(security.enforceHttps);
 app.use(security.payloadGuard);
 
-// CORS — whitelist atau all
+// CORS
 const corsOrigins = config.security.corsOrigins.length
   ? config.security.corsOrigins
   : true;
@@ -84,50 +102,90 @@ app.use(express.urlencoded({ extended: true, limit: config.security.maxBodySize 
 // Sanitize body
 app.use(security.sanitizeMiddleware);
 
-// Rate limiter global (kecuali /api/health)
+// Rate limiter global — health punya limit ringan
 app.use('/api', (req, res, next) => {
-  if (req.path === '/health') return next();
+  if (req.path === '/health' || req.path === '/health/full') {
+    return security.rateLimiter({ max: 60 })(req, res, next);
+  }
   return security.rateLimiter()(req, res, next);
 });
 
-// Request logger
+// ============================================================
+// REQUEST LOGGER + AUDIT
+// ============================================================
 app.use((req, res, next) => {
   const start = Date.now();
+
+  const pathKey = `${req.method} ${req.baseUrl || ''}${req.path.split('?')[0]}`;
+  _reqStats.set(pathKey, (_reqStats.get(pathKey) || 0) + 1);
+
   res.on('finish', () => {
     const ms = Date.now() - start;
-    const level = res.statusCode >= 500 ? 'error'
-                : res.statusCode >= 400 ? 'warn'
-                : 'info';
+    const isApi = req.originalUrl.startsWith('/api');
+    const isSlow = ms > 500;
+    const isError = res.statusCode >= 400;
+
+    // Log hanya API, error, atau slow
+    if (!isApi && !isSlow && !isError) return;
+
+    const level = isError
+      ? (res.statusCode >= 500 ? 'error' : 'warn')
+      : 'info';
     log[level](`[${req.id}] ${req.method} ${req.originalUrl} → ${res.statusCode} (${ms}ms)`);
   });
+
   next();
 });
 
-// Static frontend
+// ============================================================
+// STATIC FRONTEND — cache lebih agresif
+// ============================================================
 const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
+
 app.use(express.static(FRONTEND_DIR, {
   extensions: ['html'],
   index: ['index.html'],
-  maxAge: config.isProduction ? '1h' : 0,
+  maxAge: config.isProduction ? '7d' : '1d',
   etag: true,
-  lastModified: true
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    // File dengan hash → cache selamanya
+    if (/\.[a-f0-9]{6,}\.(js|css|png|jpg|jpeg|svg|woff2?)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }
 }));
 
-// === API ROUTES ===
+// ============================================================
+// API ROUTES
+// ============================================================
 app.use('/api', healthRoutes);
 app.use('/api', statusRoutes);
-
-// Tulis endpoint dengan rate limit ketat
 app.use('/api', security.writeRateLimiter(), controlRoutes);
 app.use('/api', security.writeRateLimiter(), configRoutes);
-
 app.use('/api', historyRoutes);
 
 // 404 API
 app.use('/api', notFoundHandler);
 
-// SPA fallback
+// ============================================================
+// KUNCI FIX: file request yang tidak match
+// ============================================================
+// Jangan biarkan SPA fallback return HTML untuk file requests.
+// Cegah loop: browser minta .js → dapat HTML → gagal parse → retry.
+
+// Silence common browser requests
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send('User-agent: *\nDisallow: /api\n');
+});
+
+// SPA fallback — hanya untuk route non-file
 app.get('*', (req, res, next) => {
+  // Path dengan ekstensi file → 404
+  if (/\.[a-zA-Z0-9]+$/.test(req.path)) {
+    return res.status(404).type('text/plain').send('Not Found');
+  }
   res.sendFile(path.join(FRONTEND_DIR, 'index.html'), (err) => {
     if (err) {
       log.error('Gagal kirim index.html:', err.message);
@@ -136,7 +194,7 @@ app.get('*', (req, res, next) => {
   });
 });
 
-// === GLOBAL ERROR HANDLER (WAJIB paling akhir) ===
+// GLOBAL ERROR HANDLER
 app.use(errorHandler);
 
 // ------------------------------------------------------------
@@ -147,7 +205,6 @@ function initServices(httpServer) {
   stateService.init();
   logger.info('  ✓ stateService initialized');
 
-  // Config persistence (Step 17 patch)
   configService.init();
   logger.info('  ✓ configService initialized');
 

@@ -49,7 +49,7 @@ const Dashboard = (() => {
   }
 
   // ----------------------------------------
-  // Status evaluators (dari Step 6)
+  // Status evaluators
   // ----------------------------------------
   function _evalTempStatus(t) {
     if (t === null || t === undefined) return { cls: 'scada-badge-idle', text: '—' };
@@ -187,21 +187,8 @@ const Dashboard = (() => {
     renderSelfMonitoring(state.selfMonitoring);
   }
 
-  // ----------------------------------------
-  // Health poll
-  // ----------------------------------------
-  let healthInterval = null;
-  async function _pollHealth() {
-    try {
-      const data = await Utils.getJSON('/api/health');
-      renderSystemStatusFromHealth(data);
-    } catch {
-      renderSystemStatusFromHealth(null);
-    }
-  }
-
   // ============================================================
-  // MANUAL CONTROL (Step 10)
+  // MANUAL CONTROL
   // ============================================================
   function _setFeedback(cls, text) {
     const node = el['mc-feedback'];
@@ -258,36 +245,29 @@ const Dashboard = (() => {
   }
 
   function setupManualControl() {
-    // Cek ada UI manual control
     if (!el['mc-pel-pwm']) return;
 
-    // Slider live label
     _bindSlider('mc-pel-pwm', 'mc-pel-pwm-val');
     _bindSlider('mc-exh-pwm', 'mc-exh-pwm-val');
     _bindSlider('mc-hs-pwm',  'mc-hs-pwm-val');
 
-    // Mode
     el['mc-mode-auto']?.addEventListener('click', () => _sendCommand('SET_MODE', 'auto'));
     el['mc-mode-manual']?.addEventListener('click', () => _sendCommand('SET_MODE', 'manual'));
 
-    // Save
     el['mc-save-config']?.addEventListener('click', () => _sendCommand('SAVE_CONFIG'));
 
-    // Clear Safe
     el['mc-clear-safe']?.addEventListener('click', () => {
       if (confirm('Matikan SAFE_MODE? Sistem akan kembali normal.')) {
         _sendCommand('CLEAR_SAFE_MODE');
       }
     });
 
-    // Emergency Stop
     el['mc-emergency']?.addEventListener('click', () => {
       if (confirm('EMERGENCY STOP?\nPeltier OFF, Exhaust 255, SAFE_MODE ON.')) {
         _sendCommand('EMERGENCY_STOP');
       }
     });
 
-    // Peltier
     el['mc-pel-off']?.addEventListener('click',  () => _sendCommand('SET_PELTIER_MODE', 'OFF'));
     el['mc-pel-cool']?.addEventListener('click', () => _sendCommand('SET_PELTIER_MODE', 'COOLING'));
     el['mc-pel-heat']?.addEventListener('click', () => _sendCommand('SET_PELTIER_MODE', 'HEATING'));
@@ -296,13 +276,11 @@ const Dashboard = (() => {
       _sendCommand('SET_PELTIER_PWM', v);
     });
 
-    // Exhaust
     el['mc-exh-apply']?.addEventListener('click', () => {
       const v = Number(el['mc-exh-pwm'].value);
       _sendCommand('SET_EXHAUST_PWM', v);
     });
 
-    // Heatsink
     el['mc-hs-apply']?.addEventListener('click', () => {
       const v = Number(el['mc-hs-pwm'].value);
       _sendCommand('SET_HEATSINK_PWM', v);
@@ -334,10 +312,10 @@ const Dashboard = (() => {
     _on('open',  () => renderSystemStatusFromHealth({ simulation: false }));
     _on('close', () => renderSystemStatusFromHealth(null));
 
-    _pollHealth();
-    // healthInterval = setInterval(_pollHealth, 10000);
+    // FIX: health poll DIHAPUS — sudah dipusatkan di app.js
+    // Render status default tanpa fetch
+    renderSystemStatusFromHealth({ simulation: false });
 
-    // Manual control binding
     setupManualControl();
   }
 
@@ -346,11 +324,7 @@ const Dashboard = (() => {
     mounted = false;
     console.log('[Dashboard] unmount');
     _unsub();
-    if (healthInterval) {
-      clearInterval(healthInterval);
-      healthInterval = null;
-    }
-    // Event listeners di DOM akan hilang otomatis karena HTML di-replace Router
+    // Tidak ada healthInterval untuk dibersihkan — sudah dihapus
   }
 
   return { mount, unmount };

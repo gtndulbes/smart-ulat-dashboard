@@ -13,7 +13,26 @@ const historyService = require('../services/historyService');
 const alertService = require('../services/alertService');
 const websocketServer = require('../websocket/websocketServer');
 
+// ============================================================
+// LIGHTWEIGHT — untuk LB probe / uptime monitor / frontend poll
+// Response < 200 byte
+// ============================================================
 router.get('/health', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=10');
+  res.json({
+    status: 'ok',
+    service: config.service,
+    uptime: Math.round(process.uptime()),
+    ts: new Date().toISOString()
+  });
+});
+
+// ============================================================
+// FULL — untuk debugging dashboard (jangan dipolling!)
+// ============================================================
+router.get('/health/full', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+
   const safe = (fn) => { try { return fn(); } catch { return null; } };
 
   res.json({

@@ -214,12 +214,25 @@ const Router = (() => {
     // Listen hash change
     window.addEventListener('hashchange', handleHashChange);
 
-    // Load route pertama
+    // ═══════════════════════════════════════════════════════════
+    // FIX: Jangan panggil loadPage() dua kali.
+    //
+    // Bug sebelumnya:
+    //   if (!location.hash) location.hash = `#/${initial}`;  ← trigger hashchange
+    //   loadPage(initial);                                    ← trigger loadPage LAGI
+    //
+    // Solusi:
+    //   - Kalau hash SUDAH ada  → loadPage() langsung
+    //   - Kalau hash KOSONG     → set hash, biarkan event hashchange
+    //                              yang trigger loadPage() (via handleHashChange)
+    // ═══════════════════════════════════════════════════════════
     const initial = getRouteFromHash();
-    if (!location.hash) {
+
+    if (location.hash) {
+      loadPage(initial);
+    } else {
       location.hash = `#/${initial}`;
     }
-    loadPage(initial);
 
     console.log('[Router] Initialized');
   }

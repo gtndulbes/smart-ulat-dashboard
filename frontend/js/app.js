@@ -3,6 +3,9 @@
 (() => {
   const HEALTH_ENDPOINT = '/api/health';
   const HEALTH_INTERVAL_MS = 60000;
+  const HEALTH_DEBOUNCE_MS = 30000;   // ← BARU: skip re-check jika < 30s
+
+  let lastHealthCheck = 0;             // ← BARU: track waktu check terakhir
 
   const el = {
     clockTime:    Utils.$('clockTime'),
@@ -29,7 +32,6 @@
     el.sidebar.classList.add('drawer-open');
     if (el.overlay) el.overlay.classList.add('active');
     document.body.classList.add('drawer-locked');
-    // Focus trap minimal — fokus ke tombol close
     setTimeout(() => el.sidebarClose?.focus?.(), 100);
   }
 
@@ -38,7 +40,6 @@
     el.sidebar.classList.remove('drawer-open');
     if (el.overlay) el.overlay.classList.remove('active');
     document.body.classList.remove('drawer-locked');
-    // Kembalikan fokus ke tombol menu
     if (isMobile()) el.menuBtn?.focus?.();
   }
 
@@ -51,13 +52,11 @@
   function setupSidebarToggle() {
     if (!el.menuBtn) return;
 
-    // Toggle button
     el.menuBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleDrawer();
     });
 
-    // Close button di drawer
     if (el.sidebarClose) {
       el.sidebarClose.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -65,17 +64,14 @@
       });
     }
 
-    // Klik overlay → tutup
     if (el.overlay) {
       el.overlay.addEventListener('click', closeDrawer);
     }
 
-    // ESC → tutup
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeDrawer();
     });
 
-    // Auto-close saat pindah halaman
     if (el.sidebar) {
       el.sidebar.querySelectorAll('[data-route]').forEach((link) => {
         link.addEventListener('click', () => {
@@ -84,10 +80,8 @@
       });
     }
 
-    // Resize: pastikan drawer state konsisten
     window.addEventListener('resize', Utils.debounce(() => {
       if (!isMobile()) {
-        // Desktop: pastikan drawer tertutup & unlock body
         el.sidebar?.classList.remove('drawer-open');
         el.overlay?.classList.remove('active');
         document.body.classList.remove('drawer-locked');
@@ -118,7 +112,7 @@
       try { currentPageModule.unmount(); } catch (e) { console.warn('[App] unmount error:', e); }
     }
 
-    closeDrawer();   // pastikan drawer tertutup saat pindah halaman
+    closeDrawer();
 
     const mod = getPageModule(name);
     if (mod && mod.mount) {
@@ -143,9 +137,17 @@
   }
 
   // ============================================================
-  // HEALTH POLL
+  // HEALTH POLL — DENGAN DEBOUNCE
   // ============================================================
-  async function checkHealth() {
+  // FIX: force=true → bypass debounce (untuk initial check)
+  //      force=false (default) → skip jika < HEALTH_DEBOUNCE_MS sejak terakhir
+  async function checkHealth(force = false) {
+    const now = Date.now();
+    if (!force && now - lastHealthCheck < HEALTH_DEBOUNCE_MS) {
+      return;  // skip: terlalu cepat
+    }
+    lastHealthCheck = now;
+
     try {
       await Utils.getJSON(HEALTH_ENDPOINT, { timeoutMs: 5000, retries: 0 });
       if (el.serverDot) el.serverDot.className = 'w-2 h-2 rounded-full bg-neon-green shadow-glow-green';
@@ -163,8 +165,8 @@
   }
 
   function startHealthPolling() {
-    checkHealth();
-    setInterval(checkHealth, HEALTH_INTERVAL_MS);
+    checkHealth(true);   // force initial check
+    setInterval(() => checkHealth(false), HEALTH_INTERVAL_MS);
   }
 
   // ============================================================
@@ -216,7 +218,7 @@
 
   function setupNetworkDetector() {
     window.addEventListener('online', () => {
-      checkHealth();
+      checkHealth(false);   // ← FIX: pakai debounce
       if (typeof WSClient !== 'undefined' && !WSClient.isConnected()) WSClient.connect();
     });
     window.addEventListener('offline', () => {
@@ -248,7 +250,7 @@
   function setupVisibilityHandler() {
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
-        checkHealth();
+        checkHealth(false);   // ← FIX: pakai debounce (sebelumnya tanpa debounce)
         if (typeof WSClient !== 'undefined' && !WSClient.isConnected()) WSClient.connect();
       }
     });
@@ -258,7 +260,7 @@
   // INIT
   // ============================================================
   function init() {
-    console.log('%c[Smart Ulat Hongkong] STEP 18 — Integration Test', 'color:#06b6d4;font-weight:bold');
+    console.log('%c[Smart Ulat Hongkong] Frontend v2 — Optimized', 'color:#06b6d4;font-weight:bold');
     console.log(`[App] Viewport: ${window.innerWidth}x${window.innerHeight}`);
 
     setupGlobalErrorHandlers();

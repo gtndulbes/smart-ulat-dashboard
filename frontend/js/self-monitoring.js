@@ -10,6 +10,10 @@
  *   - Sensors: SHT31-D, MQ-135, INA219
  *   - Actuators: Peltier, Exhaust, Heatsink
  *   - System info: uptime, freeHeap, lastUpdate, safeMode
+ *
+ * STEP 4 FIX (health poll spam):
+ *   - pollBackendHealth() DIHAPUS — health polling terpusat di app.js
+ *   - Status backend badge di-drive oleh WSClient events (open/close)
  * ============================================================
  */
 
@@ -19,8 +23,6 @@ const SelfMonitoring = (() => {
   let mounted = false;
   const subs = [];
   const el = {};
-
-  let healthInterval = null;
 
   // ----------------------------------------
   function _on(event, cb) {
@@ -59,7 +61,6 @@ const SelfMonitoring = (() => {
   // ----------------------------------------
   // Status helper
   // ----------------------------------------
-  // Status values yang dianggap OK
   const OK_VALUES = ['OK', 'CONNECTED'];
 
   function _statusClass(status) {
@@ -137,8 +138,8 @@ const SelfMonitoring = (() => {
     // Safe mode
     _setText('sm-safe-text', sm.safeMode ? 'ON' : 'OFF');
     renderBanner(sm.safeMode);
-    
-        // Humidity interlock
+
+    // Humidity interlock
     if (sm.humidityInterlock) {
       const pct = Math.round((sm.humidityCapFactor ?? 1) * 100);
       _setText('sm-humlock-text', `⚠ ACTIVE (${pct}%)`);
@@ -164,21 +165,10 @@ const SelfMonitoring = (() => {
         : '—');
     }
 
-    // Backend dari health REST
+    // Backend dari health REST (opsional — kalau ada data dari caller lain)
     if (backendData) {
       _setDot('sm-backend-dot', 'CONNECTED');
       _setText('sm-backend-text', `v${backendData.version || '?'} · ${backendData.env || '?'}`);
-    }
-  }
-
-  async function pollBackendHealth() {
-    try {
-      const data = await Utils.getJSON('/api/health');
-      _setDot('sm-backend-dot', 'CONNECTED');
-      _setText('sm-backend-text', `v${data.version} · ${data.env}`);
-    } catch {
-      _setDot('sm-backend-dot', 'DISCONNECTED');
-      _setText('sm-backend-text', 'OFFLINE');
     }
   }
 
@@ -192,6 +182,8 @@ const SelfMonitoring = (() => {
   }
 
   // ----------------------------------------
+  // Mount / Unmount
+  // ----------------------------------------
   function mount() {
     if (mounted) return;
     mounted = true;
@@ -199,11 +191,11 @@ const SelfMonitoring = (() => {
 
     console.log('[SelfMonitoring] mount');
 
-    // Initial
+    // Initial render dari cache
     const state = WSClient.getState();
     renderAll(state);
 
-    // Subscribe
+    // Subscribe update per section
     _on('update', (msg) => {
       if (msg.section === 'selfMonitoring') renderSelfMonitoring(msg.data);
       else if (msg.section === 'systemStatus') renderSystemStatus(msg.data, null);
@@ -211,19 +203,24 @@ const SelfMonitoring = (() => {
 
     _on('initial', (data) => renderAll(data));
 
-    // WS connection change → update WS dot
+    // WS connection change → update WS + Backend dot
     _on('open', () => {
       _setDot('sm-ws-dot', 'CONNECTED');
       _setText('sm-ws-text', 'CONNECTED');
+      _setDot('sm-backend-dot', 'CONNECTED');
+      _setText('sm-backend-text', 'LIVE');
     });
     _on('close', () => {
       _setDot('sm-ws-dot', 'DISCONNECTED');
       _setText('sm-ws-text', 'DISCONNECTED');
+      _setDot('sm-backend-dot', 'DISCONNECTED');
+      _setText('sm-backend-text', 'OFFLINE');
     });
 
-    // Backend health poll
-    pollBackendHealth();
-    // healthInterval = setInterval(pollBackendHealth, 10000);
+    // FIX: health poll DIHAPUS — sudah dipusatkan di app.js
+    // Render status default backend tanpa fetch
+    _setDot('sm-backend-dot', 'CONNECTED');
+    _setText('sm-backend-text', 'LIVE');
   }
 
   function unmount() {
@@ -231,10 +228,7 @@ const SelfMonitoring = (() => {
     mounted = false;
     console.log('[SelfMonitoring] unmount');
     _unsub();
-    if (healthInterval) {
-      clearInterval(healthInterval);
-      healthInterval = null;
-    }
+    // Tidak ada healthInterval untuk dibersihkan — sudah dihapus
   }
 
   return { mount, unmount };
