@@ -42,6 +42,11 @@ function handleTelemetry(payload) {
   const t = {
     temperature: num(payload.temperature),
     humidity: num(payload.humidity),
+    // NOTE: field 'nh3' is a proxy measurement from MQ-135 (general air
+    //       quality sensor, not NH3-selective). See firmware Sensors.cpp
+    //       for calibration notes. Display label shows "Air Quality".
+    //       Kept as 'nh3' for backward compatibility with ESP32 firmware,
+    //       MQTT payload, and historical GAS data.
     nh3: num(payload.nh3),
     timestamp: payload.timestamp || Date.now()
   };
@@ -75,6 +80,9 @@ function handleSelfMonitoring(payload) {
     mqtt: payload.mqtt || 'UNKNOWN',
     sht31: payload.sht31 || 'UNKNOWN',
     mq135: payload.mq135 || 'UNKNOWN',
+    // NOTE: field 'ina219' is legacy — actual hardware is INA226.
+    //       Kept as 'ina219' for backward compatibility with ESP32
+    //       firmware & historical data. UI label already shows "INA226".
     ina219: payload.ina219 || 'UNKNOWN',
     peltier: payload.peltier || 'UNKNOWN',
     exhaustFan: payload.exhaustFan || 'UNKNOWN',

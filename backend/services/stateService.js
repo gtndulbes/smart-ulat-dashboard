@@ -36,7 +36,10 @@ function createInitialState() {
 
     selfMonitoring: {
       wifi: 'UNKNOWN', mqtt: 'UNKNOWN',
-      sht31: 'UNKNOWN', mq135: 'UNKNOWN', ina219: 'UNKNOWN',
+      sht31: 'UNKNOWN', mq135: 'UNKNOWN', 
+      // NOTE: 'ina219' field name legacy — actual chip is INA226.
+      //       UI label already shows "INA226".
+      ina219: 'UNKNOWN',
       peltier: 'UNKNOWN', exhaustFan: 'UNKNOWN', heatsinkFan: 'UNKNOWN',
       safeMode: false,
       humidityInterlock: false,
