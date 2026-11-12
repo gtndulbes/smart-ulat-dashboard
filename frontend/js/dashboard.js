@@ -63,6 +63,9 @@ const Dashboard = (() => {
     if (h < 50 || h > 95)   return { cls: 'scada-badge-err', text: 'CRITICAL' };
     return { cls: 'scada-badge-warn', text: 'WARNING' };
   }
+  // Evaluates air quality from MQ-135 sensor (field name 'nh3' is a proxy
+  // measurement, not selective NH3 gas concentration). Thresholds tuned for
+  // air quality, not specific NH3 ppm. Display label shown as "Air Quality".
   function _evalNh3Status(n, limit) {
     if (n === null || n === undefined) return { cls: 'scada-badge-idle', text: '—' };
     const lim = limit || 25;

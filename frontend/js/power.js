@@ -2,7 +2,7 @@
  * ============================================================
  * power.js — Power Page Handler
  * ------------------------------------------------------------
- * STEP 9: Halaman Power Monitoring (INA219).
+ * STEP 9: Halaman Power Monitoring (INA226).
  *
  * Fitur:
  *   - Realtime V/I/P dari state.power
