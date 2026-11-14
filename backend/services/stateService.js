@@ -1,6 +1,13 @@
 /**
  * ============================================================
  * stateService.js — Central state
+ * ------------------------------------------------------------
+ * Fitur:
+ *   - State terpusat untuk semua section (sensors, actuators, dll)
+ *   - Event emitter untuk broadcast via WebSocket
+ *   - Heartbeat watchdog: deteksi ESP32 offline/online otomatis
+ *   - INA226 SENSOR_ERROR detection (bukan false-alarm CRITICAL)
+ *   - Config persistence integration
  * ============================================================
  */
 
@@ -14,6 +21,14 @@ const log = logger.scope('STATE');
 
 const MAX_ALERTS = 100;
 const MAX_COMMAND_RESPONSES = 50;
+
+// ═══════════════════════════════════════════════════════════════
+// Konfigurasi heartbeat watchdog
+// ═══════════════════════════════════════════════════════════════
+const HEARTBEAT_TIMEOUT_MS   = 15000;   // ESP32 offline kalau > 15s tanpa telemetry
+const HEARTBEAT_CHECK_MS     = 5000;    // Cek tiap 5 detik
+const INA_SENSOR_ERROR_V     = 1.0;     // V < 1.0 = INA226 tidak terdeteksi
+const INA_SENSOR_ERROR_I     = 0.1;     // I < 0.1 A = INA226 tidak terdeteksi
 
 // ------------------------------------------------------------
 // State awal
@@ -47,9 +62,6 @@ function createInitialState() {
       timestamp: null
     },
 
-    // ============================================
-    // NEW: Fuzzy-PID intermediate values (Step 8)
-    // ============================================
     fuzzyPid: {
       peltier: {
         actual: null, setpoint: null,
@@ -86,6 +98,21 @@ function createInitialState() {
     alerts: [],
     commandResponses: [],
 
+    // ═══════════════════════════════════════════════════════════
+    // Status ESP32 (dihitung backend dari heartbeat)
+    //
+    // Default = false: sampai kita terima telemetry pertama,
+    // kita anggap ESP32 OFFLINE (honest, tidak misleading).
+    // Kalau di-default true, saat backend fresh start tanpa ESP32,
+    // UI akan salah tampil "WiFi CONNECTED" padahal belum pernah
+    // ada data dari ESP32.
+    //
+    // true  = telemetry terakhir < 15 detik yang lalu
+    // false = ESP32 offline / WiFi putus / MQTT putus / crash
+    //         / belum pernah connect
+    // ═══════════════════════════════════════════════════════════
+    esp32Online: false,
+
     systemStatus: {
       mode: 'auto',
       uptime: null,
@@ -114,6 +141,7 @@ function createInitialState() {
 
 let state = createInitialState();
 let initialized = false;
+let heartbeatTimer = null;
 
 const emitter = new EventEmitter();
 emitter.setMaxListeners(100);
@@ -136,18 +164,57 @@ function emitUpdate(section) {
 }
 
 // ------------------------------------------------------------
+// Heartbeat watchdog — deteksi ESP32 offline/online
+// ------------------------------------------------------------
+function _startHeartbeatWatchdog() {
+  if (heartbeatTimer) return;
+
+  heartbeatTimer = setInterval(() => {
+    const last = state.meta.lastTelemetry;
+    if (!last) return;   // belum pernah terima telemetry — biarkan default (false)
+
+    const age = Date.now() - new Date(last).getTime();
+    const shouldBeOnline = age < HEARTBEAT_TIMEOUT_MS;
+
+    if (state.esp32Online !== shouldBeOnline) {
+      state.esp32Online = shouldBeOnline;
+      log.warn(
+        `ESP32 ${shouldBeOnline ? '✅ ONLINE' : '❌ OFFLINE'} ` +
+        `(last telemetry ${Math.round(age / 1000)}s ago)`
+      );
+      emitUpdate('esp32Online');
+    }
+  }, HEARTBEAT_CHECK_MS);
+
+  heartbeatTimer.unref?.();
+}
+
+// ------------------------------------------------------------
 function init() {
   if (initialized) { log.warn('stateService sudah init'); return; }
   state = createInitialState();
   initialized = true;
   log.info('State service initialized');
   log.info(`  Setpoint: T=${state.configuration.setpoint.temperature}°C RH=${state.configuration.setpoint.humidity}% NH3=${state.configuration.setpoint.nh3}ppm`);
+
+  // Start watchdog
+  _startHeartbeatWatchdog();
+  log.info(`  Heartbeat watchdog: timeout ${HEARTBEAT_TIMEOUT_MS / 1000}s, cek tiap ${HEARTBEAT_CHECK_MS / 1000}s`);
 }
 
 function reset() {
   state = createInitialState();
   log.warn('State di-reset');
   emitUpdate('all');
+}
+
+function shutdown() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+  initialized = false;
+  log.info('State service shutdown');
 }
 
 // ------------------------------------------------------------
@@ -159,6 +226,14 @@ function updateTelemetry(t) {
   state.sensors.timestamp = nowIso();
   state.meta.lastTelemetry = nowIso();
   state.meta.updateCount.telemetry += 1;
+
+  // FIX: telemetry masuk = ESP32 pasti online (reset watchdog flag cepat)
+  if (state.esp32Online === false) {
+    state.esp32Online = true;
+    log.warn('ESP32 ✅ ONLINE (telemetry baru masuk)');
+    emitUpdate('esp32Online');
+  }
+
   emitUpdate('sensors');
 }
 
@@ -195,14 +270,28 @@ function updatePower(p) {
   emitUpdate('power');
 }
 
+// ═══════════════════════════════════════════════════════════════
+// FIX: Deteksi INA226 tidak terdeteksi → SENSOR_ERROR, bukan CRITICAL
+//
+// Sebelumnya: V=0 < vMin(10.5) → CRITICAL → false alert spam
+// Sesudahnya: V≈0 & I≈0 → SENSOR_ERROR (INA mati/lepas, bukan power drop)
+// ═══════════════════════════════════════════════════════════════
 function evaluatePowerStatus(power) {
   const p = state.configuration.power;
   if (!p) return 'UNKNOWN';
   if (power.voltage === null || power.current === null) return 'UNKNOWN';
+
+  // INA226 tidak terdeteksi (kabel lepas / modul rusak / belum rakit)
+  // V hampir 0 DAN I hampir 0 → bukan power drop nyata, tapi sensor mati
+  if (power.voltage < INA_SENSOR_ERROR_V && power.current < INA_SENSOR_ERROR_I) {
+    return 'SENSOR_ERROR';
+  }
+
   const crit = power.voltage < p.voltageMin || power.voltage > p.voltageMax ||
                power.current > p.currentMax ||
                (power.power !== null && power.power > p.powerMax);
   if (crit) return 'CRITICAL';
+
   const warn = power.voltage < p.voltageMin * 1.05 ||
                power.voltage > p.voltageMax * 0.95 ||
                power.current > p.currentMax * 0.9 ||
@@ -239,14 +328,11 @@ function updateStatus(s) {
 }
 
 // ------------------------------------------------------------
-// NEW: Fuzzy-PID updater (Step 8)
-// ------------------------------------------------------------
 function updateFuzzyPid(fp) {
   if (!fp || typeof fp !== 'object') return;
 
   const p = state.fuzzyPid;
 
-  // Peltier loop
   if (fp.peltier && typeof fp.peltier === 'object') {
     const src = fp.peltier;
     const dst = p.peltier;
@@ -256,7 +342,6 @@ function updateFuzzyPid(fp) {
     });
   }
 
-  // Fan loops (temp, hum, nh3)
   ['fanTemp','fanHum','fanNH3'].forEach((loop) => {
     if (fp[loop] && typeof fp[loop] === 'object') {
       const src = fp[loop];
@@ -267,13 +352,11 @@ function updateFuzzyPid(fp) {
     }
   });
 
-  // Fan final (MAX operator result)
   if (fp.fanFinal && typeof fp.fanFinal === 'object') {
     if (fp.fanFinal.maxOutput !== undefined) p.fanFinal.maxOutput = fp.fanFinal.maxOutput;
     if (fp.fanFinal.pwm !== undefined)       p.fanFinal.pwm       = fp.fanFinal.pwm;
   }
 
-  // Auto-compute fanFinal kalau ESP32 tidak kirim
   if (fp.fanFinal === undefined) {
     const o1 = p.fanTemp.output || 0;
     const o2 = p.fanHum.output || 0;
@@ -355,6 +438,8 @@ function clearAlerts() { state.alerts = []; emitUpdate('alerts'); }
 
 function getState() { return deepClone(state); }
 
+function getEsp32Online() { return state.esp32Online; }
+
 function getSummary() {
   return {
     sensors: { ...state.sensors },
@@ -363,6 +448,7 @@ function getSummary() {
     selfMonitoring: { ...state.selfMonitoring },
     fuzzyPid: { ...state.fuzzyPid },
     systemStatus: { ...state.systemStatus },
+    esp32Online: state.esp32Online,
     alertsCount: state.alerts.length,
     unreadAlerts: state.alerts.filter((a) => !a.read).length,
     meta: { ...state.meta }
@@ -372,6 +458,15 @@ function getSummary() {
 function getStats() {
   return {
     initialized,
+    esp32Online: state.esp32Online,
+    heartbeat: {
+      timeoutMs: HEARTBEAT_TIMEOUT_MS,
+      checkMs: HEARTBEAT_CHECK_MS,
+      lastTelemetry: state.meta.lastTelemetry,
+      ageMs: state.meta.lastTelemetry
+        ? (Date.now() - new Date(state.meta.lastTelemetry).getTime())
+        : null
+    },
     alerts: state.alerts.length,
     unreadAlerts: state.alerts.filter((a) => !a.read).length,
     commandResponses: state.commandResponses.length,
@@ -393,12 +488,13 @@ function off(event, listener) { emitter.off(event, listener); }
 function once(event, listener){ emitter.once(event, listener); }
 
 module.exports = {
-  init, reset,
+  init, reset, shutdown,
   updateTelemetry, updateActuator, updatePower, updateSelfMonitoring, updateStatus,
   updateFuzzyPid,
   addAlert, addCommandResponse,
   getConfig, setConfig,
   getAlerts, markAlertRead, clearAlerts,
   getState, getSummary, getStats,
+  getEsp32Online,
   on, off, once
 };

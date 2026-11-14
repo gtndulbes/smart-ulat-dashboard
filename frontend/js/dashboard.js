@@ -1,6 +1,15 @@
 /**
  * ============================================================
  * dashboard.js — Dashboard Page Handler
+ * ------------------------------------------------------------
+ * Fitur:
+ *   - Render semua section realtime via WS
+ *   - Badge status: LIVE / ESP32 OFFLINE / BACKEND OFFLINE / SIMULATION
+ *   - Manual control (mode, PWM, emergency) dengan UI locking:
+ *     AUTO   → tombol Apply/Off/Cool/Heat + slider DISABLED
+ *     MANUAL → semua tombol + slider ENABLED
+ *   - Subscribe esp32Online untuk deteksi ESP32 putus
+ *   - Subscribe systemStatus untuk sync UI mode
  * ============================================================
  */
 
@@ -37,7 +46,7 @@ const Dashboard = (() => {
       'dash-sys-safe', 'dash-sys-safe-text',
       // Manual control
       'mc-feedback',
-      'mc-mode-auto', 'mc-mode-manual',
+      'mc-mode-auto', 'mc-mode-manual', 'mc-mode-status',   // ← mc-mode-status BARU
       'mc-save-config', 'mc-clear-safe', 'mc-emergency',
       'mc-pel-off', 'mc-pel-cool', 'mc-pel-heat',
       'mc-pel-pwm', 'mc-pel-pwm-val', 'mc-pel-apply',
@@ -63,9 +72,6 @@ const Dashboard = (() => {
     if (h < 50 || h > 95)   return { cls: 'scada-badge-err', text: 'CRITICAL' };
     return { cls: 'scada-badge-warn', text: 'WARNING' };
   }
-  // Evaluates air quality from MQ-135 sensor (field name 'nh3' is a proxy
-  // measurement, not selective NH3 gas concentration). Thresholds tuned for
-  // air quality, not specific NH3 ppm. Display label shown as "Air Quality".
   function _evalNh3Status(n, limit) {
     if (n === null || n === undefined) return { cls: 'scada-badge-idle', text: '—' };
     const lim = limit || 25;
@@ -163,23 +169,44 @@ const Dashboard = (() => {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // Badge status (header dashboard) — 4 state:
+  //   1. BACKEND OFFLINE  (merah)  — WS putus, tidak bisa trust apa pun
+  //   2. ESP32 OFFLINE    (kuning) — backend OK, ESP32 tidak report
+  //   3. SIMULATION       (kuning) — mode simulasi
+  //   4. LIVE             (hijau)  — semua OK
+  // ═══════════════════════════════════════════════════════════════
   function renderSystemStatusFromHealth(data) {
     const wsConnected = WSClient.isConnected();
+    const state = WSClient.getState();
+    const esp32Online = state?.esp32Online !== false;
+
     _setDot('dash-sys-ws', wsConnected);
     _setText('dash-sys-ws-text', wsConnected ? 'OK' : 'OFF');
 
     const badge = el['dash-status'];
     if (!badge) return;
+
+    if (!wsConnected) {
+      badge.className = 'scada-badge scada-badge-err';
+      badge.textContent = 'BACKEND OFFLINE';
+      return;
+    }
+
+    if (!esp32Online) {
+      badge.className = 'scada-badge scada-badge-warn';
+      badge.textContent = 'ESP32 OFFLINE';
+      return;
+    }
+
     if (data?.simulation) {
       badge.className = 'scada-badge scada-badge-warn';
       badge.textContent = 'SIMULATION';
-    } else if (!wsConnected) {
-      badge.className = 'scada-badge scada-badge-err';
-      badge.textContent = 'OFFLINE';
-    } else {
-      badge.className = 'scada-badge scada-badge-ok';
-      badge.textContent = 'LIVE';
+      return;
     }
+
+    badge.className = 'scada-badge scada-badge-ok';
+    badge.textContent = 'LIVE';
   }
 
   function renderAll(state) {
@@ -188,6 +215,75 @@ const Dashboard = (() => {
     renderActuators(state.actuators);
     renderPower(state.power);
     renderSelfMonitoring(state.selfMonitoring);
+    renderSystemStatusFromHealth({ simulation: false });
+  }
+
+  // ============================================================
+  // MODE UI LOCKING
+  // ============================================================
+
+  /**
+   * Set state UI berdasarkan mode aktif:
+   *   AUTO   → tombol apply/off/cool/heat + slider DISABLED
+   *   MANUAL → semua tombol + slider ENABLED
+   *
+   * Dipanggil saat:
+   *   - mount (sync awal dari state)
+   *   - klik AUTO/MANUAL (optimistic)
+   *   - terima update systemStatus dari WS (mode berubah dari ESP32)
+   */
+  function setModeUI(isManual) {
+    const btnIds = [
+      'mc-pel-off', 'mc-pel-cool', 'mc-pel-heat', 'mc-pel-apply',
+      'mc-exh-apply', 'mc-hs-apply'
+    ];
+    const sliderIds = ['mc-pel-pwm', 'mc-exh-pwm', 'mc-hs-pwm'];
+
+    btnIds.forEach((id) => {
+      const btn = el[id];
+      if (!btn) return;
+      btn.disabled = !isManual;
+      btn.classList.toggle('opacity-40', !isManual);
+      btn.classList.toggle('cursor-not-allowed', !isManual);
+    });
+
+    sliderIds.forEach((id) => {
+      const slider = el[id];
+      if (!slider) return;
+      slider.disabled = !isManual;
+      slider.classList.toggle('opacity-40', !isManual);
+    });
+
+    // Badge indicator
+    const badge = el['mc-mode-status'];
+    if (badge) {
+      if (isManual) {
+        badge.className = 'scada-badge scada-badge-warn text-[10px]';
+        badge.textContent = 'MANUAL';
+      } else {
+        badge.className = 'scada-badge scada-badge-ok text-[10px]';
+        badge.textContent = 'AUTO';
+      }
+    }
+
+    // Highlight tombol mode aktif
+    const btnAuto   = el['mc-mode-auto'];
+    const btnManual = el['mc-mode-manual'];
+    if (btnAuto && btnManual) {
+      if (isManual) {
+        btnManual.classList.add('bg-neon-cyan/20', 'border-neon-cyan/40', 'text-cyan-200');
+        btnManual.classList.remove('bg-navy-700', 'border-slate-700/60');
+        btnAuto.classList.remove('bg-neon-cyan/20', 'border-neon-cyan/40', 'text-cyan-200');
+        btnAuto.classList.add('bg-navy-700', 'border-slate-700/60');
+      } else {
+        btnAuto.classList.add('bg-neon-cyan/20', 'border-neon-cyan/40', 'text-cyan-200');
+        btnAuto.classList.remove('bg-navy-700', 'border-slate-700/60');
+        btnManual.classList.remove('bg-neon-cyan/20', 'border-neon-cyan/40', 'text-cyan-200');
+        btnManual.classList.add('bg-navy-700', 'border-slate-700/60');
+      }
+    }
+
+    console.log(`[Dashboard] Mode UI: ${isManual ? 'MANUAL (unlocked)' : 'AUTO (locked)'}`);
   }
 
   // ============================================================
@@ -254,8 +350,28 @@ const Dashboard = (() => {
     _bindSlider('mc-exh-pwm', 'mc-exh-pwm-val');
     _bindSlider('mc-hs-pwm',  'mc-hs-pwm-val');
 
-    el['mc-mode-auto']?.addEventListener('click', () => _sendCommand('SET_MODE', 'auto'));
-    el['mc-mode-manual']?.addEventListener('click', () => _sendCommand('SET_MODE', 'manual'));
+    // ─────────────────────────────────────────────────────────────
+    // Mode toggle — kirim command + sync UI
+    //
+    // AUTO: setelah backend ack sukses, lock UI (disable manual)
+    // MANUAL: setelah backend ack sukses, unlock UI
+    //
+    // Kalau gagal (timeout / MQTT down), UI tetap di state lama
+    // → user bisa retry.
+    // ─────────────────────────────────────────────────────────────
+    el['mc-mode-auto']?.addEventListener('click', async () => {
+      const result = await _sendCommand('SET_MODE', 'auto');
+      if (result?.ok && result?.data?.success) {
+        setModeUI(false);
+      }
+    });
+
+    el['mc-mode-manual']?.addEventListener('click', async () => {
+      const result = await _sendCommand('SET_MODE', 'manual');
+      if (result?.ok && result?.data?.success) {
+        setModeUI(true);
+      }
+    });
 
     el['mc-save-config']?.addEventListener('click', () => _sendCommand('SAVE_CONFIG'));
 
@@ -271,20 +387,37 @@ const Dashboard = (() => {
       }
     });
 
-    el['mc-pel-off']?.addEventListener('click',  () => _sendCommand('SET_PELTIER_MODE', 'OFF'));
-    el['mc-pel-cool']?.addEventListener('click', () => _sendCommand('SET_PELTIER_MODE', 'COOLING'));
-    el['mc-pel-heat']?.addEventListener('click', () => _sendCommand('SET_PELTIER_MODE', 'HEATING'));
+    // ─────────────────────────────────────────────────────────────
+    // Manual PWM commands — guarded oleh disabled state.
+    // Kalau tombol disabled, browser tidak trigger click.
+    // Tapi sebagai defense-in-depth, cek disabled juga.
+    // ─────────────────────────────────────────────────────────────
+    el['mc-pel-off']?.addEventListener('click',  () => {
+      if (el['mc-pel-off']?.disabled) return;
+      _sendCommand('SET_PELTIER_MODE', 'OFF');
+    });
+    el['mc-pel-cool']?.addEventListener('click', () => {
+      if (el['mc-pel-cool']?.disabled) return;
+      _sendCommand('SET_PELTIER_MODE', 'COOLING');
+    });
+    el['mc-pel-heat']?.addEventListener('click', () => {
+      if (el['mc-pel-heat']?.disabled) return;
+      _sendCommand('SET_PELTIER_MODE', 'HEATING');
+    });
     el['mc-pel-apply']?.addEventListener('click', () => {
+      if (el['mc-pel-apply']?.disabled) return;
       const v = Number(el['mc-pel-pwm'].value);
       _sendCommand('SET_PELTIER_PWM', v);
     });
 
     el['mc-exh-apply']?.addEventListener('click', () => {
+      if (el['mc-exh-apply']?.disabled) return;
       const v = Number(el['mc-exh-pwm'].value);
       _sendCommand('SET_EXHAUST_PWM', v);
     });
 
     el['mc-hs-apply']?.addEventListener('click', () => {
+      if (el['mc-hs-apply']?.disabled) return;
       const v = Number(el['mc-hs-pwm'].value);
       _sendCommand('SET_HEATSINK_PWM', v);
     });
@@ -303,6 +436,14 @@ const Dashboard = (() => {
     const initial = WSClient.getState();
     if (initial) renderAll(initial);
 
+    // ─────────────────────────────────────────────────────────────
+    // Sync UI mode awal dari state
+    // systemStatus.mode: 0 (auto) / 1 (manual)
+    // ─────────────────────────────────────────────────────────────
+    const initialMode = initial?.systemStatus?.mode;
+    const initialIsManual = (initialMode === 1 || initialMode === 'manual');
+    setModeUI(initialIsManual);
+
     _on('state', (state) => renderAll(state));
 
     _on('update', (msg) => {
@@ -310,13 +451,23 @@ const Dashboard = (() => {
       else if (msg.section === 'actuators') renderActuators(msg.data);
       else if (msg.section === 'power')     renderPower(msg.data);
       else if (msg.section === 'selfMonitoring') renderSelfMonitoring(msg.data);
+      else if (msg.section === 'esp32Online')    renderSystemStatusFromHealth({ simulation: false });
+      else if (msg.section === 'systemStatus') {
+        // ═══════════════════════════════════════════════════════════
+        // Sync UI mode dari ESP32.
+        // ESP32 publish mode lewat TOPIC_STATUS: 0 (auto) / 1 (manual).
+        // Saat user lain ubah mode via dashboard lain, atau ESP32
+        // sendiri switch mode (misal boot force auto), UI kita ikut.
+        // ═══════════════════════════════════════════════════════════
+        const mode = msg.data?.mode;
+        const isManual = (mode === 1 || mode === 'manual');
+        setModeUI(isManual);
+      }
     });
 
     _on('open',  () => renderSystemStatusFromHealth({ simulation: false }));
     _on('close', () => renderSystemStatusFromHealth(null));
 
-    // FIX: health poll DIHAPUS — sudah dipusatkan di app.js
-    // Render status default tanpa fetch
     renderSystemStatusFromHealth({ simulation: false });
 
     setupManualControl();
@@ -327,7 +478,6 @@ const Dashboard = (() => {
     mounted = false;
     console.log('[Dashboard] unmount');
     _unsub();
-    // Tidak ada healthInterval untuk dibersihkan — sudah dihapus
   }
 
   return { mount, unmount };

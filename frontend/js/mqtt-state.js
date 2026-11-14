@@ -16,12 +16,8 @@
  *   - Computed/delta values (dT, dP, trend)
  *   - History mini (10 update terakhir per section)
  *   - Fallback aman kalau backend kirim data tidak lengkap
- *
- * Cara pakai:
- *   MqttState.init();                     // sekali di startup
- *   MqttState.on('sensors:update', cb);   // subscribe
- *   const s = MqttState.getSensors();     // snapshot
- *   const all = MqttState.getAll();       // full snapshot
+ *   - esp32Online: heartbeat status ESP32 (dari backend, bukan payload)
+ *   - WiFi card di UI dirender dari esp32Online (bukan selfMonitoring.wifi)
  * ============================================================
  */
 
@@ -38,7 +34,6 @@ const MqttState = (() => {
   let initialized = false;
 
   const listeners = {};       // event → [cb]
-  const subs = [];            // [ [event, cb] ] untuk cleanup
 
   // ----------------------------------------
   // Factory: empty state
@@ -65,6 +60,8 @@ const MqttState = (() => {
         timestamp: null
       },
       selfMonitoring: {
+        // 'wifi' field disimpan untuk backward-compat, tapi TIDAK dirender.
+        // UI WiFi card menggunakan esp32Online (heartbeat backend).
         wifi: 'UNKNOWN',
         mqtt: 'UNKNOWN',
         sht31: 'UNKNOWN',
@@ -98,6 +95,14 @@ const MqttState = (() => {
       },
       configuration: null,
       alerts: [],
+
+      // ═══════════════════════════════════════════════════════════
+      // Status ESP32 (dihitung backend dari heartbeat)
+      // true  = telemetry terakhir < 15 detik yang lalu
+      // false = ESP32 offline / WiFi putus / MQTT putus / crash
+      // ═══════════════════════════════════════════════════════════
+      esp32Online: true,
+
       meta: {
         lastTelemetry: null,
         lastActuator: null,
@@ -126,7 +131,7 @@ const MqttState = (() => {
   function on(event, cb) {
     if (!listeners[event]) listeners[event] = [];
     listeners[event].push(cb);
-    return () => off(event, cb);   // return unsubscribe fn
+    return () => off(event, cb);
   }
 
   function off(event, cb) {
@@ -150,7 +155,7 @@ const MqttState = (() => {
   }
 
   // ----------------------------------------
-  // Deep clone (structuredClone atau JSON fallback)
+  // Deep clone
   // ----------------------------------------
   function _clone(obj) {
     if (obj === null || obj === undefined) return obj;
@@ -174,11 +179,10 @@ const MqttState = (() => {
     }
   }
 
-  function _updateSection(section, data, eventName) {
+  function _updateSection(section, data) {
     if (!state[section]) return;
     if (!data || typeof data !== 'object') return;
 
-    // Merge field by field
     for (const [k, v] of Object.entries(data)) {
       if (v !== undefined) state[section][k] = v;
     }
@@ -194,23 +198,16 @@ const MqttState = (() => {
   // Update per section
   // ----------------------------------------
   function updateSensors(data) {
-    _updateSection('sensors', data, 'sensors:update');
+    _updateSection('sensors', data);
     state.meta.lastTelemetry = new Date().toISOString();
   }
 
   function updateActuators(data) {
     if (!data || typeof data !== 'object') return;
 
-    // Merge nested peltier/exhaustFan/heatsinkFan
-    if (data.peltier) {
-      Object.assign(state.actuators.peltier, data.peltier);
-    }
-    if (data.exhaustFan) {
-      Object.assign(state.actuators.exhaustFan, data.exhaustFan);
-    }
-    if (data.heatsinkFan) {
-      Object.assign(state.actuators.heatsinkFan, data.heatsinkFan);
-    }
+    if (data.peltier)     Object.assign(state.actuators.peltier, data.peltier);
+    if (data.exhaustFan)  Object.assign(state.actuators.exhaustFan, data.exhaustFan);
+    if (data.heatsinkFan) Object.assign(state.actuators.heatsinkFan, data.heatsinkFan);
 
     state.actuators.timestamp = new Date().toISOString();
     _pushHistory('actuators');
@@ -220,17 +217,16 @@ const MqttState = (() => {
   }
 
   function updatePower(data) {
-    _updateSection('power', data, 'power:update');
+    _updateSection('power', data);
     state.meta.lastPower = new Date().toISOString();
   }
 
   function updateSelfMonitoring(data) {
     const prevSafe = state.selfMonitoring.safeMode;
 
-    _updateSection('selfMonitoring', data, 'selfMonitoring:update');
+    _updateSection('selfMonitoring', data);
     state.meta.lastSelfMonitoring = new Date().toISOString();
 
-    // Detect SAFE_MODE change
     if (prevSafe !== state.selfMonitoring.safeMode) {
       emit('safeModeChanged', {
         prev: prevSafe,
@@ -243,15 +239,11 @@ const MqttState = (() => {
   function updateFuzzyPid(data) {
     if (!data || typeof data !== 'object') return;
 
-    if (data.peltier) {
-      Object.assign(state.fuzzyPid.peltier, data.peltier);
-    }
+    if (data.peltier) Object.assign(state.fuzzyPid.peltier, data.peltier);
     ['fanTemp', 'fanHum', 'fanNH3'].forEach((loop) => {
       if (data[loop]) Object.assign(state.fuzzyPid[loop], data[loop]);
     });
-    if (data.fanFinal) {
-      Object.assign(state.fuzzyPid.fanFinal, data.fanFinal);
-    }
+    if (data.fanFinal) Object.assign(state.fuzzyPid.fanFinal, data.fanFinal);
 
     state.fuzzyPid.timestamp = new Date().toISOString();
     _pushHistory('fuzzyPid');
@@ -261,7 +253,7 @@ const MqttState = (() => {
   }
 
   function updateSystemStatus(data) {
-    _updateSection('systemStatus', data, 'systemStatus:update');
+    _updateSection('systemStatus', data);
     state.meta.lastStatus = new Date().toISOString();
   }
 
@@ -288,13 +280,39 @@ const MqttState = (() => {
     emit('alerts:update', _clone(state.alerts));
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // Update status ESP32 online/offline
+  // Payload: boolean atau { online: boolean }
+  // Edge-triggered: emit hanya saat berubah
+  // ═══════════════════════════════════════════════════════════════
+  function updateEsp32Online(data) {
+    const online = typeof data === 'boolean' ? data : Boolean(data?.online);
+
+    if (state.esp32Online === online) return;
+
+    const prev = state.esp32Online;
+    state.esp32Online = online;
+
+    console.log(`[MqttState] ESP32 ${prev ? 'ONLINE' : 'OFFLINE'} → ${online ? 'ONLINE' : 'OFFLINE'}`);
+    emit('esp32Online:update', online);
+    emit('change', { section: 'esp32Online', data: online });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Reset saat WS disconnect permanen (tidak ada heartbeat baru)
+  // Dipakai kalau mau force-offline status saat backend mati
+  // ═══════════════════════════════════════════════════════════════
+  function clearEsp32Online() {
+    if (state.esp32Online === false) return;
+    state.esp32Online = false;
+    console.log('[MqttState] ESP32 OFFLINE (WS disconnected)');
+    emit('esp32Online:update', false);
+    emit('change', { section: 'esp32Online', data: false });
+  }
+
   // ============================================================
   // DERIVED VALUES
   // ============================================================
-
-  /**
-   * Delta suhu antara 2 history point terakhir.
-   */
   function getTemperatureDelta() {
     const h = history.sensors;
     if (h.length < 2) return null;
@@ -304,9 +322,6 @@ const MqttState = (() => {
     return Number((curr - prev).toFixed(2));
   }
 
-  /**
-   * Trend suhu: 'up' | 'down' | 'stable'
-   */
   function getTemperatureTrend() {
     const d = getTemperatureDelta();
     if (d === null) return 'unknown';
@@ -315,9 +330,6 @@ const MqttState = (() => {
     return 'stable';
   }
 
-  /**
-   * Power trend serupa.
-   */
   function getPowerTrend() {
     const h = history.power;
     if (h.length < 2) return 'unknown';
@@ -330,10 +342,9 @@ const MqttState = (() => {
     return 'stable';
   }
 
-  /**
-   * Overall system status: 'normal' | 'warning' | 'critical' | 'safe' | 'offline'
-   */
   function getOverallStatus() {
+    if (state.esp32Online === false) return 'offline';
+
     if (state.selfMonitoring.safeMode) return 'safe';
 
     const ps = state.power.status;
@@ -345,15 +356,11 @@ const MqttState = (() => {
     }
     if (ps === 'WARNING') return 'warning';
 
-    // Sensor error
     if (state.selfMonitoring.sht31 === 'ERROR') return 'warning';
 
     return 'normal';
   }
 
-  /**
-   * Age data terakhir (ms) — untuk deteksi stale
-   */
   function getDataAge(section) {
     const m = state.meta;
     const key = {
@@ -369,16 +376,13 @@ const MqttState = (() => {
     return Date.now() - new Date(m[key]).getTime();
   }
 
-  /**
-   * Cek apakah data dianggap stale (>N ms)
-   */
   function isStale(section, thresholdMs = 15000) {
     const age = getDataAge(section);
     return age === null || age > thresholdMs;
   }
 
   // ============================================================
-  // PUBLIC GETTERS (snapshot immutable)
+  // PUBLIC GETTERS
   // ============================================================
   function getSensors()         { return _clone(state.sensors); }
   function getActuators()       { return _clone(state.actuators); }
@@ -389,6 +393,7 @@ const MqttState = (() => {
   function getConfiguration()   { return _clone(state.configuration); }
   function getAlerts()          { return _clone(state.alerts); }
   function getMeta()            { return _clone(state.meta); }
+  function getEsp32Online()     { return state.esp32Online; }
 
   function getAll() {
     return {
@@ -400,6 +405,7 @@ const MqttState = (() => {
       systemStatus: _clone(state.systemStatus),
       configuration: _clone(state.configuration),
       alerts: _clone(state.alerts),
+      esp32Online: state.esp32Online,
       meta: _clone(state.meta)
     };
   }
@@ -432,6 +438,11 @@ const MqttState = (() => {
       if (data.configuration)  updateConfiguration(data.configuration);
       if (Array.isArray(data.alerts)) updateAlerts(data.alerts);
 
+      // FIX: pakai updateEsp32Online() supaya dedup konsisten
+      if (typeof data.esp32Online === 'boolean') {
+        updateEsp32Online(data.esp32Online);
+      }
+
       emit('ready', getAll());
     });
 
@@ -449,6 +460,7 @@ const MqttState = (() => {
         case 'systemStatus':   updateSystemStatus(data); break;
         case 'configuration':  updateConfiguration(data); break;
         case 'alerts':         updateAlerts(data); break;
+        case 'esp32Online':    updateEsp32Online(data); break;
         default: break;
       }
     });
@@ -458,14 +470,13 @@ const MqttState = (() => {
       addAlert(alert);
     });
 
-    // SAFE_MODE change dari server (mis. peringatan khusus)
+    // SAFE_MODE change
     WSClient.on('safeMode', (e) => {
-      // Update state juga
       state.selfMonitoring.safeMode = Boolean(e?.current);
       emit('safeModeChanged', e);
     });
 
-    // Cache dari getState() WSClient (fallback kalau initial tidak terkirim)
+    // Fallback: cache dari WSClient (kalau initial tidak terkirim)
     const cached = WSClient.getState?.();
     if (cached && !initialized) {
       console.log('[MqttState] restore dari WSClient cache');
@@ -477,6 +488,9 @@ const MqttState = (() => {
       if (cached.systemStatus)   updateSystemStatus(cached.systemStatus);
       if (cached.configuration)  updateConfiguration(cached.configuration);
       if (Array.isArray(cached.alerts)) updateAlerts(cached.alerts);
+      if (typeof cached.esp32Online === 'boolean') {
+        updateEsp32Online(cached.esp32Online);
+      }
     }
   }
 
@@ -506,9 +520,7 @@ const MqttState = (() => {
   }
 
   function destroy() {
-    subs.forEach(([ev, cb]) => off(ev, cb));
-    subs.length = 0;
-    listeners && Object.keys(listeners).forEach((k) => delete listeners[k]);
+    Object.keys(listeners).forEach((k) => delete listeners[k]);
     initialized = false;
     console.log('[MqttState] destroyed');
   }
@@ -537,6 +549,7 @@ const MqttState = (() => {
     getConfiguration,
     getAlerts,
     getMeta,
+    getEsp32Online,
     getAll,
     getHistory,
 
@@ -557,6 +570,8 @@ const MqttState = (() => {
     updateSystemStatus,
     updateConfiguration,
     updateAlerts,
+    updateEsp32Online,
+    clearEsp32Online,
     addAlert,
 
     // Info

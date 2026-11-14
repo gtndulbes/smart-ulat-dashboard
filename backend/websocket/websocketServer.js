@@ -14,7 +14,7 @@
  *
  * Protokol pesan:
  *   Server → Client:
- *     { type: 'welcome',  serverTime, clientId }
+ *     { type: 'welcome',  serverTime, clientId, simulation, esp32Online }
  *     { type: 'initial',  data: <full state> }
  *     { type: 'update',   section, data, timestamp }
  *     { type: 'alert',    data: <alert> }
@@ -27,11 +27,16 @@
  *
  * Fitur:
  *   - Attach ke HTTP server yang sudah ada (path /ws)
- *   - Kirim initial state saat client connect
+ *   - Kirim initial state saat client connect (include esp32Online)
  *   - Listen event stateService → broadcast
  *   - Heartbeat ping/pong (deteksi dead client)
  *   - Track clients + stats
  *   - Graceful shutdown
+ *
+ * Heartbeat ESP32:
+ *   stateService menghitung esp32Online dari watchdog (last telemetry).
+ *   Server broadcast section 'esp32Online' saat transisi.
+ *   Frontend render card "WiFi" dari nilai ini — bukan payload sm.wifi.
  * ============================================================
  */
 
@@ -116,15 +121,19 @@ function onConnection(ws, req) {
 
   log.info(`Client connected: ${ws.clientId} (${ws.clientIp}) — total: ${stats.currentConnections}`);
 
-  // Kirim welcome
+  // ─────────────────────────────────────────────────────────────
+  // Welcome — feedback instan, termasuk esp32Online supaya client
+  // tidak perlu tunggu 'initial' untuk tahu status ESP32.
+  // ─────────────────────────────────────────────────────────────
   safeSend(ws, {
     type: 'welcome',
     serverTime: new Date().toISOString(),
     clientId: ws.clientId,
-    simulation: config.simulationMode
+    simulation: config.simulationMode,
+    esp32Online: stateService.getEsp32Online()   // ← BARU
   });
 
-  // Kirim initial state
+  // Kirim initial state (sudah include esp32Online dari stateService.getState())
   try {
     safeSend(ws, {
       type: 'initial',
@@ -197,11 +206,22 @@ function wireStateEvents() {
         case 'actuators':       data = snap.actuators; break;
         case 'power':           data = snap.power; break;
         case 'selfMonitoring':  data = snap.selfMonitoring; break;
-        case 'fuzzyPid':        data = snap.fuzzyPid; break;      // ← TAMBAHAN
+        case 'fuzzyPid':        data = snap.fuzzyPid; break;
         case 'systemStatus':    data = snap.systemStatus; break;
         case 'configuration':   data = snap.configuration; break;
         case 'alerts':          data = snap.alerts.slice(0, 20); break;
         case 'commandResponses':data = snap.commandResponses.slice(0, 20); break;
+
+        // ═══════════════════════════════════════════════════════════
+        // Broadcast status ESP32 online/offline
+        // Payload konsisten: { online: boolean }
+        // Frontend: card WiFi + badge dashboard dirender dari sini.
+        // ═══════════════════════════════════════════════════════════
+        case 'esp32Online':
+          data = { online: Boolean(snap.esp32Online) };
+          log.debug(`Broadcast esp32Online: ${data.online}`);
+          break;
+
         default:                data = snap;
       }
     } catch (err) {
@@ -264,7 +284,6 @@ function startHeartbeat() {
     }
   }, intervalMs);
 
-  // Cleanup saat proses exit
   heartbeatInterval.unref?.();
 }
 
@@ -285,8 +304,8 @@ function init(httpServer) {
   wss = new WebSocket.Server({
     server: httpServer,
     path,
-    perMessageDeflate: false,   // IoT data kecil, kompresi tidak worth
-    maxPayload: 1024 * 1024,    // 1 MB max
+    perMessageDeflate: false,
+    maxPayload: 1024 * 1024,
     clientTracking: true
   });
 

@@ -2,18 +2,19 @@
  * ============================================================
  * self-monitoring.js — Self-Monitoring Page Handler
  * ------------------------------------------------------------
- * STEP 9: Halaman Self-Monitoring.
+ * STEP 9 + STEP 4 FIX + HEARTBEAT FIX
  *
- * Fitur:
- *   - Banner SAFE_MODE (muncul otomatis saat aktif)
- *   - Communication: WiFi, MQTT, WebSocket, Backend
- *   - Sensors: SHT31-D, MQ-135, INA219
- *   - Actuators: Peltier, Exhaust, Heatsink
- *   - System info: uptime, freeHeap, lastUpdate, safeMode
+ * PENTING — Card "WiFi" di UI:
+ *   Label tetap "WiFi" (familiar untuk user),
+ *   TAPI data yang dirender dari esp32Online (heartbeat backend),
+ *   BUKAN dari selfMonitoring.wifi (payload ESP32 yang bisa stale).
  *
- * STEP 4 FIX (health poll spam):
- *   - pollBackendHealth() DIHAPUS — health polling terpusat di app.js
- *   - Status backend badge di-drive oleh WSClient events (open/close)
+ *   Alasan: saat ESP32 mati, payload "WiFi CONNECTED" terakhir
+ *   tetap disimpan backend. Tanpa heartbeat, user akan lihat
+ *   "WiFi CONNECTED" padahal ESP32 sudah offline 5 menit.
+ *
+ *   Heartbeat backend = satu-satunya indikator yang tidak bisa basi.
+ *   Card "WiFi" = representasi communication ESP32 secara keseluruhan.
  * ============================================================
  */
 
@@ -40,7 +41,7 @@ const SelfMonitoring = (() => {
       // Safe mode banner
       'sm-safe-banner',
       // Communication
-      'sm-wifi-dot', 'sm-wifi-text',
+      'sm-wifi-dot', 'sm-wifi-text',     // ← dirender dari esp32Online
       'sm-mqtt-dot', 'sm-mqtt-text',
       'sm-ws-dot', 'sm-ws-text',
       'sm-backend-dot', 'sm-backend-text',
@@ -61,7 +62,7 @@ const SelfMonitoring = (() => {
   // ----------------------------------------
   // Status helper
   // ----------------------------------------
-  const OK_VALUES = ['OK', 'CONNECTED'];
+  const OK_VALUES = ['OK', 'CONNECTED', 'ONLINE'];
 
   function _statusClass(status) {
     if (!status || status === 'UNKNOWN') return 'unknown';
@@ -90,6 +91,15 @@ const SelfMonitoring = (() => {
     node.textContent = (value === null || value === undefined) ? '—' : String(value);
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // Card WiFi = representasi communication ESP32
+  // Data source: esp32Online (heartbeat backend), BUKAN sm.wifi
+  // ═══════════════════════════════════════════════════════════════
+  function renderWifiStatus(online) {
+    _setDot('sm-wifi-dot', online ? 'CONNECTED' : 'DISCONNECTED');
+    _setText('sm-wifi-text', online ? 'CONNECTED' : 'DISCONNECTED');
+  }
+
   // ----------------------------------------
   // Renderers
   // ----------------------------------------
@@ -103,14 +113,16 @@ const SelfMonitoring = (() => {
   function renderSelfMonitoring(sm) {
     if (!sm) return;
 
-    // Communication (dari ESP32)
-    _setDot('sm-wifi-dot', sm.wifi);
-    _setText('sm-wifi-text', sm.wifi);
+    // NOTE: sm.wifi TIDAK dirender — card WiFi di-drive oleh esp32Online
+    //       (lihat renderWifiStatus). Alasan: sm.wifi bisa stale.
+    //       MQTT tetap dirender karena broker bisa down terpisah dari WiFi.
 
+    // MQTT (dari ESP32 payload — tapi ini jarang basi karena
+    // kalau ESP32 mati, ESP32 indicator (WiFi card) yang lebih cepat update)
     _setDot('sm-mqtt-dot', sm.mqtt);
     _setText('sm-mqtt-text', sm.mqtt);
 
-    // WebSocket status (dari client, bukan ESP32)
+    // WebSocket (dari client browser, bukan ESP32)
     const wsOk = WSClient.isConnected();
     _setDot('sm-ws-dot', wsOk ? 'CONNECTED' : 'DISCONNECTED');
     _setText('sm-ws-text', wsOk ? 'CONNECTED' : 'DISCONNECTED');
@@ -165,7 +177,6 @@ const SelfMonitoring = (() => {
         : '—');
     }
 
-    // Backend dari health REST (opsional — kalau ada data dari caller lain)
     if (backendData) {
       _setDot('sm-backend-dot', 'CONNECTED');
       _setText('sm-backend-text', `v${backendData.version || '?'} · ${backendData.env || '?'}`);
@@ -179,6 +190,8 @@ const SelfMonitoring = (() => {
     if (!state) return;
     renderSelfMonitoring(state.selfMonitoring);
     renderSystemStatus(state.systemStatus, null);
+    // WiFi card = esp32Online (heartbeat), BUKAN selfMonitoring.wifi
+    renderWifiStatus(state.esp32Online !== false);
   }
 
   // ----------------------------------------
@@ -199,6 +212,12 @@ const SelfMonitoring = (() => {
     _on('update', (msg) => {
       if (msg.section === 'selfMonitoring') renderSelfMonitoring(msg.data);
       else if (msg.section === 'systemStatus') renderSystemStatus(msg.data, null);
+      else if (msg.section === 'esp32Online') {
+        // Update card WiFi dari heartbeat
+        const data = msg.data;
+        const online = typeof data === 'boolean' ? data : Boolean(data?.online);
+        renderWifiStatus(online);
+      }
     });
 
     _on('initial', (data) => renderAll(data));
@@ -217,7 +236,6 @@ const SelfMonitoring = (() => {
       _setText('sm-backend-text', 'OFFLINE');
     });
 
-    // FIX: health poll DIHAPUS — sudah dipusatkan di app.js
     // Render status default backend tanpa fetch
     _setDot('sm-backend-dot', 'CONNECTED');
     _setText('sm-backend-text', 'LIVE');
@@ -228,7 +246,6 @@ const SelfMonitoring = (() => {
     mounted = false;
     console.log('[SelfMonitoring] unmount');
     _unsub();
-    // Tidak ada healthInterval untuk dibersihkan — sudah dihapus
   }
 
   return { mount, unmount };

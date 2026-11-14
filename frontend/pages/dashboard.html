@@ -191,6 +191,15 @@
               MANUAL
             </button>
           </div>
+          <!-- ═══════════════════════════════════════════════════════════
+               Mode aktif indicator — di-drive oleh dashboard.js::setModeUI()
+               AUTO   → hijau, tombol Apply/Off/Cool/Heat disabled
+               MANUAL → kuning, tombol Apply/Off/Cool/Heat enabled
+               ═══════════════════════════════════════════════════════════ -->
+          <div class="mt-2 flex items-center gap-2">
+            <span class="text-[10px] uppercase tracking-widest text-slate-500">Mode aktif:</span>
+            <span id="mc-mode-status" class="scada-badge scada-badge-idle text-[10px]">—</span>
+          </div>
         </div>
 
         <!-- Quick Actions -->
